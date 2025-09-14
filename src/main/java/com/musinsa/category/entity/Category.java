@@ -24,11 +24,15 @@ public class Category {
     @Column(nullable = false, length = 100)
     private String name;
 
+    @Column(length = 1000)
+    private String description;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Category parent;
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
     @Builder.Default
     private List<Category> children = new ArrayList<>();
 
@@ -40,7 +44,7 @@ public class Category {
     @Builder.Default
     private Integer depth = 0;
 
-    @Column(length = 500)
+    @Column(length = 1000)
     private String path;
 
     @Column(name = "is_active", nullable = false)
@@ -48,31 +52,60 @@ public class Category {
     private Boolean isActive = true;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", updatable = false, nullable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public void updateInfo(String name, Integer displayOrder) {
-        this.name = name;
-        this.displayOrder = displayOrder;
+    public void updateInfo(String name, String description, Integer displayOrder) {
+        if (name != null && !name.trim().isEmpty()) {
+            this.name = name.trim();
+        }
+        if (description != null) {
+            this.description = description.trim().isEmpty() ? null : description.trim();
+        }
+        if (displayOrder != null && displayOrder >= 0) {
+            this.displayOrder = displayOrder;
+        }
     }
 
     public void deactivate() {
         this.isActive = false;
+        // 하위 카테고리도 전부 비활성화
+        this.children.forEach(Category::deactivate);
     }
 
-    public void updatePath() {
+    public void activate() {
+        this.isActive = true;
+    }
+
+    public void updatePathAndDepth() {
         if (this.parent != null) {
             this.path = this.parent.getPath() + "/" + this.id;
+            this.depth = this.parent.getDepth() + 1;
         } else {
             this.path = "/" + this.id;
+            this.depth = 0;
         }
     }
 
-    public boolean isRoot() {
-        return this.parent == null;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Category category)) return false;
+        return id != null && id.equals(category.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Category{id=%d, name='%s', depth=%d, path='%s'}",
+                id, name, depth, path);
     }
 }
