@@ -59,6 +59,12 @@ public class Category {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "created_by", length = 50)
+    private String createdBy;
+
+    @Column(name = "updated_by", length = 50)
+    private String updatedBy;
+
     public void updateInfo(String name, String description, Integer displayOrder) {
         if (name != null && !name.trim().isEmpty()) {
             this.name = name.trim();
@@ -89,6 +95,13 @@ public class Category {
             this.path = "/" + this.id;
             this.depth = 0;
         }
+    }
+
+    public void updateAuditInfo(String userId) {
+        if (this.createdBy == null) {
+            this.createdBy = userId;
+        }
+        this.updatedBy = userId;
     }
 
     @Override

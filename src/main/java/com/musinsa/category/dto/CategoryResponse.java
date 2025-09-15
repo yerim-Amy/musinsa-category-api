@@ -22,11 +22,13 @@ public class CategoryResponse {
     private Integer depth;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String createdBy;
+    private String updatedBy;
 
     @Builder.Default
     private List<CategoryResponse> children = new ArrayList<>();
 
-    // Entity -> Response 변환 (children 포함하지 않음)
+    // Entity -> Response 변환 (children 포함안함)
     public static CategoryResponse from(Category category) {
         return CategoryResponse.builder()
                 .id(category.getId())
@@ -39,6 +41,8 @@ public class CategoryResponse {
                 .depth(category.getDepth())
                 .createdAt(category.getCreatedAt())
                 .updatedAt(category.getUpdatedAt())
+                .createdBy(category.getCreatedBy())
+                .updatedBy(category.getUpdatedBy())
                 .children(new ArrayList<>()) // 빈 리스트로 초기화
                 .build();
     }
@@ -56,6 +60,8 @@ public class CategoryResponse {
                 .depth(category.getDepth())
                 .createdAt(category.getCreatedAt())
                 .updatedAt(category.getUpdatedAt())
+                .createdBy(category.getCreatedBy())
+                .updatedBy(category.getUpdatedBy())
                 .children(category.getChildren().stream()
                         .filter(Category::getIsActive)
                         .map(CategoryResponse::fromEntity)
