@@ -26,5 +26,9 @@ spring:
       enabled: true
       path: /h2-console
 
+jwt:
+  secret: musinsa-category-admin-secret-key-for-development
+  expiration: 3600000
+
 server:
   port: 8080

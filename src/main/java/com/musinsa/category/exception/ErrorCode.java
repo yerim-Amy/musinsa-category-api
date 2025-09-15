@@ -20,6 +20,12 @@ public enum ErrorCode {
     CATEGORY_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "C009", "카테고리 이름이 100자를 넘습니다"),
     INVALID_DISPLAY_ORDER(HttpStatus.BAD_REQUEST, "C009", "정렬 순서는 0 이상이어야 합니다"),
 
+    // 인증 관련 에러
+    INVALID_ADMIN_CREDENTIALS(HttpStatus.UNAUTHORIZED,"A001", "잘못된 계정 정보입니다"),
+    MISSING_TOKEN(HttpStatus.UNAUTHORIZED,"A002", "토큰이 필요합니다"),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED,"A003", "유효하지 않은 토큰입니다"),
+    EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED,"A004", "만료된 토큰입니다"),
+    UNAUTHORIZED_ACCESS(HttpStatus.FORBIDDEN, "A005", "접근 권한이 없습니다"),
     // 일반적인 에러
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "G001", "잘못된 입력값입니다"),
     INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "G002", "잘못된 인수값입니다"),
