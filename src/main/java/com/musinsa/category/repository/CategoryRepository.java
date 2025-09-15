@@ -90,4 +90,33 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     @Query("SELECT c FROM Category c WHERE c.name = :name AND c.isActive = true " +
             "AND (:parentId IS NULL AND c.parent IS NULL OR c.parent.id = :parentId)")
     List<Category> findByNameAndParent(@Param("name") String name, @Param("parentId") Long parentId);
+
+
+    // ==== 통계 조회 ====
+
+    /**
+     * 전체 활성 카테고리 수 조회
+     */
+    @Query("SELECT COUNT(c) FROM Category c WHERE c.isActive = true")
+    long countAllActive();
+
+    /**
+     * 루트 카테고리 수 조회
+     */
+    @Query("SELECT COUNT(c) FROM Category c WHERE c.parent IS NULL AND c.isActive = true")
+    long countRootCategories();
+
+    /**
+     * 리프 카테고리 수 조회 (자식이 없는 카테고리)
+     */
+    @Query("SELECT COUNT(c) FROM Category c WHERE c.isActive = true " +
+            "AND NOT EXISTS (SELECT 1 FROM Category child WHERE child.parent = c AND child.isActive = true)")
+    long countLeafCategories();
+
+    /**
+     * 최대 깊이 조회
+     */
+    @Query("SELECT COALESCE(MAX(c.depth), 0) FROM Category c WHERE c.isActive = true")
+    int findMaxDepth();
+
 }

@@ -2,6 +2,7 @@ package com.musinsa.category.service;
 
 import com.musinsa.category.dto.CategoryRequest;
 import com.musinsa.category.dto.CategoryResponse;
+import com.musinsa.category.dto.CategoryStatsResponse;
 import com.musinsa.category.entity.Category;
 import com.musinsa.category.exception.BusinessException;
 import com.musinsa.category.exception.ErrorCode;
@@ -30,8 +31,9 @@ public class CategoryService {
      * 카테고리 생성
      */
     @Transactional
-    public CategoryResponse createCategory(CategoryRequest request) {
-        log.info("카테고리 생성 요청 - name: {}, parentId: {}", request.getName(), request.getParentId());
+    public CategoryResponse createCategory(CategoryRequest request, String adminId) {
+        log.info("카테고리 생성 요청 - name: {}, parentId: {}, adminId: {}",
+                request.getName(), request.getParentId(), adminId);
 
         // 입력값 검증
         validateCategoryRequest(request);
@@ -59,12 +61,15 @@ public class CategoryService {
                 .parent(parent)
                 .displayOrder(request.getDisplayOrder() != null ? request.getDisplayOrder() : nextOrder)
                 .isActive(true)
+                .createdBy(adminId)
+                .updatedBy(adminId)
                 .build();
 
         Category savedCategory = categoryRepository.save(category);
         savedCategory.updatePathAndDepth();
 
-        log.info("카테고리 생성 완료 - ID: {}, Path: {}", savedCategory.getId(), savedCategory.getPath());
+        log.info("카테고리 생성 완료 - ID: {}, Path: {}, adminId: {}",
+                savedCategory.getId(), savedCategory.getPath(), adminId);
         return CategoryResponse.from(savedCategory);
     }
 
@@ -72,8 +77,8 @@ public class CategoryService {
      * 카테고리 수정
      */
     @Transactional
-    public CategoryResponse updateCategory(Long categoryId, CategoryRequest request) {
-        log.info("카테고리 수정 요청 - ID: {}", categoryId);
+    public CategoryResponse updateCategory(Long categoryId, CategoryRequest request, String adminId) {
+        log.info("카테고리 수정 요청 - ID: {}, adminId: {}", categoryId, adminId);
 
         Category category = categoryRepository.findActiveById(categoryId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
@@ -84,10 +89,10 @@ public class CategoryService {
             checkDuplicateNameForUpdate(request.getName(), parentId, categoryId);
         }
 
-        // 기본 정보 업데이트
         category.updateInfo(request.getName(), request.getDescription(), request.getDisplayOrder());
+        category.updateAuditInfo(adminId);
 
-        log.info("카테고리 수정 완료 - ID: {}", categoryId);
+        log.info("카테고리 수정 완료 - ID: {}, adminId: {}", categoryId, adminId);
         return CategoryResponse.from(category);
     }
 
@@ -95,8 +100,8 @@ public class CategoryService {
      * 카테고리 삭제 (비활성화)
      */
     @Transactional
-    public void deleteCategory(Long categoryId) {
-        log.info("카테고리 삭제 요청 - ID: {}", categoryId);
+    public void deleteCategory(Long categoryId, String adminId) {
+        log.info("카테고리 삭제 요청 - ID: {}, adminId: {}", categoryId, adminId);
 
         Category category = categoryRepository.findActiveById(categoryId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
@@ -109,10 +114,33 @@ public class CategoryService {
 
         // 비활성화 처리
         category.deactivate();
+        category.updateAuditInfo(adminId);
 
-        log.info("카테고리 삭제 완료 - ID: {}", categoryId);
+        log.info("카테고리 삭제 완료 - ID: {}, adminId: {}", categoryId, adminId);
     }
 
+    /**
+     * 카테고리 활성화
+     */
+    @Transactional
+    public void activateCategory(Long categoryId, String adminId) {
+        log.info("카테고리 활성화 요청 - ID: {}, adminId: {}", categoryId, adminId);
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        // 부모가 비활성 상태면 활성화 불가
+        if (category.getParent() != null && !category.getParent().getIsActive()) {
+            throw new BusinessException(ErrorCode.CATEGORY_INACTIVE_PARENT);
+        }
+
+        category.activate();
+        category.updateAuditInfo(adminId);
+
+        log.info("카테고리 활성화 완료 - ID: {}, adminId: {}", categoryId, adminId);
+    }
+
+    // ==== 조회 API ====
     /**
      * 카테고리 단일 조회
      */
@@ -221,22 +249,19 @@ public class CategoryService {
     }
 
     /**
-     * 카테고리 활성화
+     * 카테고리 통계 조회
      */
-    @Transactional
-    public void activateCategory(Long categoryId) {
-        log.info("카테고리 활성화 요청 - ID: {}", categoryId);
+    @Transactional(readOnly = true)
+    @Cacheable(value = "categoryStats")
+    public CategoryStatsResponse getCategoryStats() {
+        log.debug("카테고리 통계 조회");
 
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
+        long totalCount = categoryRepository.countAllActive();        // 전체 카테고리 개수
+        long rootCount = categoryRepository.countRootCategories();    // 대분류 개수
+        long leafCount = categoryRepository.countLeafCategories();    // 실제 상품 들어갈 카테고리 개수
+        int maxDepth = categoryRepository.findMaxDepth();             // 카테고리 깊이
 
-        // 부모가 비활성 상태면 활성화 불가
-        if (category.getParent() != null && !category.getParent().getIsActive()) {
-            throw new BusinessException(ErrorCode.CATEGORY_INACTIVE_PARENT);
-        }
-
-        category.activate();
-        log.info("카테고리 활성화 완료 - ID: {}", categoryId);
+        return CategoryStatsResponse.of(totalCount, rootCount, leafCount, maxDepth);
     }
 
     // ==== Private Helper Methods ====
