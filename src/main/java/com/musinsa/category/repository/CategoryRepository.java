@@ -21,12 +21,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     Optional<Category> findActiveById(@Param("id") Long id);
 
     /**
-     * 모든 활성화된 카테고리 조회
-     */
-    @Query("SELECT c FROM Category c WHERE c.isActive = true")
-    List<Category> findAllActive();
-
-    /**
      * 모든 활성화된 카테고리를 정렬해서 조회 (depth, displayOrder 순)
      */
     @Query("SELECT c FROM Category c WHERE c.isActive = true ORDER BY c.depth ASC, c.displayOrder ASC")
@@ -45,6 +39,12 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      */
     @Query("SELECT c FROM Category c WHERE c.parent IS NULL AND c.isActive = true ORDER BY c.displayOrder DESC")
     List<Category> findRootCategoriesDesc();
+
+    /**
+     * 모든 활성 카테고리 조회 (부모 정보 포함)
+     */
+    @Query("SELECT c FROM Category c LEFT JOIN FETCH c.parent WHERE c.isActive = true ORDER BY c.displayOrder, c.id")
+    List<Category> findAllActiveWithParent();
 
     /**
      * 특정 부모의 자식 카테고리들 조회 (displayOrder 순)
@@ -90,6 +90,14 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     @Query("SELECT c FROM Category c WHERE c.name = :name AND c.isActive = true " +
             "AND (:parentId IS NULL AND c.parent IS NULL OR c.parent.id = :parentId)")
     List<Category> findByNameAndParent(@Param("name") String name, @Param("parentId") Long parentId);
+
+    /**
+     * displayorder 사용여부와 정보 조회
+     */
+    @Query("SELECT c FROM Category c WHERE " +
+            "(:parentId IS NULL AND c.parent IS NULL OR :parentId IS NOT NULL AND c.parent.id = :parentId) " +
+            "AND c.displayOrder = :displayOrder")
+    Optional<Category> findByParentIdAndDisplayOrder(Long parentId, Integer displayOrder);
 
 
     // ==== 통계 조회 ====
