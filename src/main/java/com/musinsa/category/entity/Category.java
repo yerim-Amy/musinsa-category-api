@@ -1,5 +1,7 @@
 package com.musinsa.category.entity;
 
+import com.musinsa.category.exception.BusinessException;
+import com.musinsa.category.exception.ErrorCode;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -10,7 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "categories")
+@Table(name = "categories", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_category_parent_display_order",columnNames = {"parent_id", "display_order"})
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -72,7 +76,7 @@ public class Category {
         if (description != null) {
             this.description = description.trim().isEmpty() ? null : description.trim();
         }
-        if (displayOrder != null && displayOrder >= 0) {
+        if (displayOrder != null && 0 <= displayOrder) {
             this.displayOrder = displayOrder;
         }
     }
@@ -95,6 +99,9 @@ public class Category {
             this.path = "/" + this.id;
             this.depth = 0;
         }
+        for (Category child : this.children) {
+            child.updatePathAndDepth();
+        }
     }
 
     public void updateAuditInfo(String userId) {
@@ -102,6 +109,30 @@ public class Category {
             this.createdBy = userId;
         }
         this.updatedBy = userId;
+    }
+
+    public void setParent(Category newParent) {
+        // 자신을 부모로 설정하는 경우 방지
+        if (newParent != null && newParent.equals(this)) {
+            throw new BusinessException(ErrorCode.CATEGORY_SELF_PARENT);
+        }
+        // 모든 하위를 부모로 설정하는 경우 방지 (직계 + 후손 체크)
+        if (newParent != null && newParent.isDescendantOf(this)) {
+            throw new BusinessException(ErrorCode.CATEGORY_INVALID_PARENT);
+        }
+
+        this.parent = newParent;
+        updatePathAndDepth();
+    }
+
+    // path 기반으로 하위인지 체크
+    public boolean isDescendantOf(Category potentialAncestor) {
+        if (potentialAncestor == null || this.path == null || potentialAncestor.getPath() == null) {
+            return false;
+        }
+
+        String ancestorPath = potentialAncestor.getPath();
+        return this.path.startsWith(ancestorPath + "/");
     }
 
     @Override
