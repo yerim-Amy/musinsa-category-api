@@ -9,7 +9,6 @@ import com.musinsa.category.exception.ErrorCode;
 import com.musinsa.category.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -232,7 +231,6 @@ public class CategoryService {
      * 카테고리 트리 구조 조회 (전체 또는 특정 카테고리 기준)
      */
     @Transactional(readOnly = true)
-    @Cacheable(value = "categoryTree", key = "#categoryId != null ? #categoryId : 'all'")
     public List<CategoryResponse> getCategoryTree(Long categoryId) {
         log.debug("카테고리 트리 조회 - ID: {}", categoryId);
 
@@ -329,7 +327,6 @@ public class CategoryService {
      * 카테고리 통계 조회
      */
     @Transactional(readOnly = true)
-    @Cacheable(value = "categoryStats")
     public CategoryStatsResponse getCategoryStats() {
         log.debug("카테고리 통계 조회");
 
