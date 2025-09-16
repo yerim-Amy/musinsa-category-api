@@ -24,18 +24,6 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 잘못된 인수 예외 처리 (400)
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
-        String message = ex.getMessage();
-        String code = ErrorCode.INVALID_ARGUMENT.getCode();
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(code, message != null ? message : "잘못된 요청입니다"));
-    }
-
-    /**
      * 엔티티 조회 실패 (404)
      */
     @ExceptionHandler(EntityNotFoundException.class)

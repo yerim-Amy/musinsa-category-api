@@ -1,5 +1,7 @@
 package com.musinsa.category.security;
 
+import com.musinsa.category.exception.BusinessException;
+import com.musinsa.category.exception.ErrorCode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -53,7 +55,7 @@ public class JwtUtil {
             return claims.getSubject();
         } catch (Exception e) {
             log.warn("토큰에서 사용자 ID 추출 실패: {}", e.getMessage());
-            throw new IllegalArgumentException("유효하지 않은 토큰입니다");
+            throw new BusinessException(ErrorCode.INVALID_TOKEN);
         }
     }
 

@@ -19,6 +19,9 @@ public enum ErrorCode {
     CATEGORY_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "C008", "카테고리 이름은 필수 입니다"),
     CATEGORY_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "C009", "카테고리 이름이 100자를 넘습니다"),
     INVALID_DISPLAY_ORDER(HttpStatus.BAD_REQUEST, "C009", "정렬 순서는 0 이상이어야 합니다"),
+    CATEGORY_SELF_PARENT(HttpStatus.BAD_REQUEST,"C010", "자기 자신을 부모로 설정할 수 없습니다."),
+    CATEGORY_INVALID_PARENT(HttpStatus.BAD_REQUEST,"C011", "하위 카테고리를 부모로 설정할 수 없습니다."),
+    DISPLAY_ORDER_DUPLICATE(HttpStatus.BAD_REQUEST, "C012", "중복된 정렬 순서가 있습니다"),
 
     // 인증 관련 에러
     INVALID_ADMIN_CREDENTIALS(HttpStatus.UNAUTHORIZED,"A001", "잘못된 계정 정보입니다"),
