@@ -1,10 +1,10 @@
 package com.musinsa.category.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +107,10 @@ public class Category {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Category category)) return false;
+        if (!(o instanceof Category)) {
+            return false;
+        }
+        Category category = (Category) o;
         return id != null && id.equals(category.getId());
     }
 
