@@ -4,6 +4,7 @@ import com.musinsa.category.dto.CategoryRequest;
 import com.musinsa.category.dto.CategoryResponse;
 import com.musinsa.category.dto.CategoryStatsResponse;
 import com.musinsa.category.entity.Category;
+import com.musinsa.category.enums.Gender;
 import com.musinsa.category.exception.BusinessException;
 import com.musinsa.category.exception.ErrorCode;
 import com.musinsa.category.repository.CategoryRepository;
@@ -31,8 +32,8 @@ public class CategoryService {
      */
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request, String adminId) {
-        log.info("카테고리 생성 요청 - name: {}, parentId: {}, adminId: {}",
-                request.getName(), request.getParentId(), adminId);
+        log.info("카테고리 생성 요청 - name: {}, parentId: {}, adminId: {}, gender: {}",
+                request.getName(), request.getParentId(), adminId, request.getGender());
 
         // 입력값 검증
         if (!StringUtils.hasText(request.getName())) {
@@ -81,14 +82,14 @@ public class CategoryService {
         return createNewCategory(request, adminId, parent, displayOrder);
     }
 
-    // 카테고리 생성 - 더 이상 try-catch 불필요
+    // 카테고리 생성
     private CategoryResponse createNewCategory(CategoryRequest request, String adminId, Category parent, Integer displayOrder) {
-        // 카테고리 생성
         Category category = Category.builder()
                 .name(request.getName().trim())
                 .description(request.getDescription())
                 .parent(parent)
                 .displayOrder(displayOrder)
+                .gender(request.getGender())
                 .isActive(true)
                 .createdBy(adminId)
                 .updatedBy(adminId)
@@ -131,14 +132,20 @@ public class CategoryService {
 
         // 3. 부모 변경시
         Long requestParentId = request.getParentId();
-        if (requestParentId!= null && !requestParentId.equals(categoryParentId)) {
-            Category newParent = categoryRepository.findActiveById(request.getParentId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-            category.setParent(newParent);
+        if (requestParentId != null && !requestParentId.equals(categoryParentId)) {
+            log.info("parentId 검색 시작: " + requestParentId);
+
+            Optional<Category> parentOptional = categoryRepository.findActiveById(requestParentId);
+            if (parentOptional.isEmpty()) {
+                String errMessage = String.format("입력한 parentId %d에 해당하는 부모 카테고리가 없습니다.", requestParentId);
+                log.error("에러 발생: " + errMessage);
+                throw new BusinessException(ErrorCode.CATEGORY_PARENT_NOT_FOUND, errMessage);
+            }
+            category.setParent(parentOptional.get());
         }
 
         // 4. 요청 정보 업데이트
-        category.updateInfo(request.getName(), request.getDescription(), request.getDisplayOrder());
+        category.updateInfo(request);
         category.updateAuditInfo(adminId);
 
         log.info("카테고리 수정 완료 - ID: {}, adminId: {}", categoryId, adminId);
@@ -166,6 +173,26 @@ public class CategoryService {
         category.updateAuditInfo(adminId);
 
         log.info("카테고리 삭제 완료 - ID: {}, adminId: {}", categoryId, adminId);
+    }
+
+    /**
+     * 카테고리 삭제 (물리적 삭제)
+     */
+    @Transactional
+    public void realDeleteCategory(Long categoryId, String adminId) {
+        log.warn("카테고리 물리적 삭제 요청 - ID: {}, adminId: {}", categoryId, adminId);
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
+
+        // 하위 카테고리 존재 확인
+        List<Category> allChildren = categoryRepository.findChildrenByParentId(categoryId);
+        if (!allChildren.isEmpty()) {
+            throw new BusinessException(ErrorCode.CATEGORY_HAS_CHILDREN);
+        }
+
+        categoryRepository.delete(category);
+        log.warn("카테고리 물리적 삭제 완료 - ID: {}, adminId: {}", categoryId, adminId);
     }
 
     /**
@@ -231,20 +258,20 @@ public class CategoryService {
      * 카테고리 트리 구조 조회 (전체 또는 특정 카테고리 기준)
      */
     @Transactional(readOnly = true)
-    public List<CategoryResponse> getCategoryTree(Long categoryId) {
-        log.debug("카테고리 트리 조회 - ID: {}", categoryId);
+    public List<CategoryResponse> getCategoryTree(Long categoryId, Gender gender) {
+        log.debug("카테고리 트리 조회 - ID: {}", categoryId, gender);
 
         List<Category> categories;
 
         if (categoryId == null) {
             // 전체 카테고리 트리 조회
-            categories = categoryRepository.findAllActiveWithParent();
+            categories = categoryRepository.findAllActiveWithParent(gender);
         } else {
             // 특정 카테고리와 하위 카테고리들 조회
             Category rootCategory = categoryRepository.findActiveById(categoryId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
-            categories = categoryRepository.findDescendants(rootCategory.getPath());
+            categories = categoryRepository.findDescendants(rootCategory.getPath(),gender);
             categories.add(0, rootCategory); // 본인도 포함
         }
 

@@ -4,6 +4,7 @@ import com.musinsa.category.common.ApiResponse;
 import com.musinsa.category.dto.CategoryRequest;
 import com.musinsa.category.dto.CategoryResponse;
 import com.musinsa.category.dto.CategoryStatsResponse;
+import com.musinsa.category.enums.Gender;
 import com.musinsa.category.exception.BusinessException;
 import com.musinsa.category.exception.ErrorCode;
 import com.musinsa.category.security.JwtUtil;
@@ -69,7 +70,6 @@ public class CategoryController {
      * 카테고리 삭제 (비활성화 처리)
      */
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "카테고리 삭제", description = "카테고리를 삭제(비활성화)합니다")
     public ApiResponse<Void> deleteCategory(
             HttpServletRequest httpRequest,
@@ -80,6 +80,23 @@ public class CategoryController {
 
         categoryService.deleteCategory(id, adminId);
         return ApiResponse.success(null, "카테고리가 성공적으로 삭제되었습니다");
+    }
+
+    /**
+     * 카테고리 완전 삭제
+     */
+    @DeleteMapping("/{id}/real")
+    @Operation(summary = "카테고리 완전 삭제", description = "카테고리를 완전히 삭제합니다")
+    public ApiResponse<Void> realDeleteCategory(
+            HttpServletRequest httpRequest,
+            @Parameter(description = "카테고리 ID") @PathVariable Long id,
+            @RequestParam(required = true) boolean confirm) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        String adminId = validateTokenAndGetAdminId(authHeader);
+        log.info("카테고리 완전 삭제 요청 - ID: {} by {}", id, adminId);
+
+        categoryService.realDeleteCategory(id, adminId);
+        return ApiResponse.success(null, "카테고리가 완전히 삭제되었습니다");
     }
 
     /**
@@ -131,9 +148,11 @@ public class CategoryController {
     @Operation(summary = "카테고리 트리 조회", description = "카테고리 트리 구조를 조회합니다")
     public ApiResponse<List<CategoryResponse>> getCategoryTree(
             @Parameter(description = "루트 카테고리 ID (없으면 전체 트리)")
-            @RequestParam(required = false) Long categoryId) {
+            @RequestParam(required = false) Long categoryId,
+            @Parameter(description = "성별 (기본값:A)")
+            @RequestParam(defaultValue = "A") Gender gender) {
 
-        List<CategoryResponse> tree = categoryService.getCategoryTree(categoryId);
+        List<CategoryResponse> tree = categoryService.getCategoryTree(categoryId, gender);
         return ApiResponse.success(tree);
     }
 
@@ -142,7 +161,9 @@ public class CategoryController {
      */
     @GetMapping("/roots")
     @Operation(summary = "루트 카테고리 조회", description = "최상위 카테고리들을 조회합니다")
-    public ApiResponse<List<CategoryResponse>> getRootCategories() {
+    public ApiResponse<List<CategoryResponse>> getRootCategories(
+            @Parameter(description = "성별 (기본값:A)")
+            @RequestParam(defaultValue = "A") Gender gender) {
         List<CategoryResponse> roots = categoryService.getRootCategories();
         return ApiResponse.success(roots);
     }
@@ -152,7 +173,9 @@ public class CategoryController {
      */
     @GetMapping
     @Operation(summary = "전체 카테고리 조회", description = "모든 활성 카테고리를 조회합니다")
-    public ApiResponse<List<CategoryResponse>> getAllCategories() {
+    public ApiResponse<List<CategoryResponse>> getAllCategories(
+            @Parameter(description = "성별 (기본값:A)")
+            @RequestParam(defaultValue = "A") Gender gender) {
         List<CategoryResponse> all = categoryService.getAllCategories();
         return ApiResponse.success(all);
     }
