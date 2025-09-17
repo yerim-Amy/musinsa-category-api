@@ -3,7 +3,6 @@ package com.musinsa.category.controller;
 import com.musinsa.category.common.ApiResponse;
 import com.musinsa.category.dto.CategoryRequest;
 import com.musinsa.category.dto.CategoryResponse;
-import com.musinsa.category.dto.CategoryStatsResponse;
 import com.musinsa.category.enums.Gender;
 import com.musinsa.category.exception.BusinessException;
 import com.musinsa.category.exception.ErrorCode;
@@ -91,6 +90,9 @@ public class CategoryController {
             HttpServletRequest httpRequest,
             @Parameter(description = "카테고리 ID") @PathVariable Long id,
             @RequestParam(required = true) boolean confirm) {
+        if (!confirm) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "confirm 파라미터를 확인해주세요");
+        }
         String authHeader = httpRequest.getHeader("Authorization");
         String adminId = validateTokenAndGetAdminId(authHeader);
         log.info("카테고리 완전 삭제 요청 - ID: {} by {}", id, adminId);
@@ -164,7 +166,7 @@ public class CategoryController {
     public ApiResponse<List<CategoryResponse>> getRootCategories(
             @Parameter(description = "성별 (기본값:A)")
             @RequestParam(defaultValue = "A") Gender gender) {
-        List<CategoryResponse> roots = categoryService.getRootCategories();
+        List<CategoryResponse> roots = categoryService.getRootCategories(gender);
         return ApiResponse.success(roots);
     }
 
@@ -176,7 +178,7 @@ public class CategoryController {
     public ApiResponse<List<CategoryResponse>> getAllCategories(
             @Parameter(description = "성별 (기본값:A)")
             @RequestParam(defaultValue = "A") Gender gender) {
-        List<CategoryResponse> all = categoryService.getAllCategories();
+        List<CategoryResponse> all = categoryService.getAllCategories(gender);
         return ApiResponse.success(all);
     }
 
@@ -193,16 +195,6 @@ public class CategoryController {
 
         List<CategoryResponse> results = categoryService.searchCategories(keyword);
         return ApiResponse.success(results);
-    }
-
-    /**
-     * 카테고리 간단 통계 조회
-     */
-    @GetMapping("/stats")
-    @Operation(summary = "카테고리 통계", description = "전체,루트,리프 카테고리 수와 최대 깊이를 조회합니다")
-    public ApiResponse<CategoryStatsResponse> getCategoryStats() {
-        CategoryStatsResponse stats = categoryService.getCategoryStats();
-        return ApiResponse.success(stats);
     }
 
     /**

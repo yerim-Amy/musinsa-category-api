@@ -76,12 +76,7 @@ public class Category {
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 
-    public void updateInfo(CategoryRequest request) {
-        String name = request.getName();
-        String description= request.getDescription();
-        Integer displayOrder =request.getDisplayOrder();
-        Gender gender = request.getGender();
-
+    public void updateInfo( String name, String description, Integer displayOrder, Gender gender) {
         if (name != null && !name.trim().isEmpty()) {
             this.name = name.trim();
         }
