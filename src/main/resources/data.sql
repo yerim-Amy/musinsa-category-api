@@ -11,7 +11,7 @@ INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_acti
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (10, '홈웨어', NULL, 10, 0, '/10', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- 상의 하위 카테고리 (중분류)
-INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (101, '반팔 티셔츠', 1, 1, 1, '/1/101', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at, gender) VALUES (101, '반팔 티셔츠', 1, 1, 1, '/1/101', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,'A');
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (102, '긴팔 티셔츠', 1, 2, 1, '/1/102', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (103, '셔츠/블라우스', 1, 3, 1, '/1/103', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (104, '피케/카라 티셔츠', 1, 4, 1, '/1/104', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -21,7 +21,7 @@ INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_acti
 
 -- 아우터 하위 카테고리 (중분류)
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (201, '후드 집업', 2, 1, 1, '/2/201', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (202, '블루종/MA-1', 2, 2, 1, '/2/202', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at,gender) VALUES (202, '블루종/MA-1', 2, 2, 1, '/2/202', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,'M');
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (203, '레더/라이더스 재킷', 2, 3, 1, '/2/203', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (204, '테일러드 재킷', 2, 4, 1, '/2/204', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (205, '카디건', 2, 5, 1, '/2/205', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -63,6 +63,10 @@ INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_acti
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (80101, '캐주얼 모자', 801, 1, 2, '/8/801/80101', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (80102, '비니', 801, 2, 2, '/8/801/80102', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (80103, '버킷 햇', 801, 3, 2, '/8/801/80103', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+-- 언더웨어 하위 카테고리 (중분류)
+INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at, gender) VALUES (901, '브레지어', 9, 1, 1, '/9/901', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'F');
+INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at, gender) VALUES (902, '사각팬티', 9, 2, 1, '/9/902', true, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'M');
 
 -- 비활성화된 카테고리 (논리 삭제 테스트용)
 INSERT INTO categories (id, name, parent_id, display_order, depth, path, is_active, created_by, created_at, updated_at) VALUES (9999, '단종 상품', 1, 99, 1, '/1/9999', false, 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

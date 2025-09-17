@@ -1,6 +1,7 @@
 package com.musinsa.category.repository;
 
 import com.musinsa.category.entity.Category;
+import com.musinsa.category.enums.Gender;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -43,8 +44,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     /**
      * 모든 활성 카테고리 조회 (부모 정보 포함)
      */
-    @Query("SELECT c FROM Category c LEFT JOIN FETCH c.parent WHERE c.isActive = true ORDER BY c.displayOrder, c.id")
-    List<Category> findAllActiveWithParent();
+    @Query("SELECT c FROM Category c LEFT JOIN FETCH c.parent WHERE c.isActive = true " +
+            "AND (:gender = 'A' OR c.gender = :gender OR c.gender = 'A' OR c.gender IS NULL) ORDER BY c.path")
+    List<Category> findAllActiveWithParent(@Param("gender") Gender gender);
 
     /**
      * 특정 부모의 자식 카테고리들 조회 (displayOrder 순)
@@ -63,8 +65,11 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     /**
      * 특정 path의 모든 하위 카테고리들 조회
      */
-    @Query("SELECT c FROM Category c WHERE c.isActive = true AND c.path LIKE CONCAT(:parentPath, '/%') ORDER BY c.depth ASC, c.displayOrder ASC")
-    List<Category> findDescendants(@Param("parentPath") String parentPath);
+    @Query("SELECT c FROM Category c WHERE c.isActive = true AND c.path LIKE CONCAT(:parentPath, '/%') " +
+            "AND (c.gender = :gender OR c.gender = 'A') " +
+            "ORDER BY c.depth ASC, c.displayOrder ASC")
+    List<Category> findDescendants(@Param("parentPath") String parentPath, @Param("gender") Gender gender);
+
 
     // ==== 검색 기능 ====
 

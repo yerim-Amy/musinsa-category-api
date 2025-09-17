@@ -1,6 +1,7 @@
 package com.musinsa.category.dto;
 
 import com.musinsa.category.entity.Category;
+import com.musinsa.category.enums.Gender;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -15,6 +16,7 @@ public class CategoryResponse {
     private Long id;
     private String name;
     private String description;
+    private Gender gender;
     private Long parentId;
     private Integer displayOrder;
     private Boolean isActive;
@@ -34,6 +36,7 @@ public class CategoryResponse {
                 .id(category.getId())
                 .name(category.getName())
                 .description(category.getDescription())
+                .gender(category.getGender())
                 .parentId(category.getParent() != null ? category.getParent().getId() : null)
                 .displayOrder(category.getDisplayOrder())
                 .isActive(category.getIsActive())
@@ -53,6 +56,7 @@ public class CategoryResponse {
                 .id(category.getId())
                 .name(category.getName())
                 .description(category.getDescription())
+                .gender(category.getGender())
                 .parentId(category.getParent() != null ? category.getParent().getId() : null)
                 .displayOrder(category.getDisplayOrder())
                 .isActive(category.getIsActive())

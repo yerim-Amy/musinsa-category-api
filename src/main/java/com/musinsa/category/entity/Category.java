@@ -1,5 +1,7 @@
 package com.musinsa.category.entity;
 
+import com.musinsa.category.dto.CategoryRequest;
+import com.musinsa.category.enums.Gender;
 import com.musinsa.category.exception.BusinessException;
 import com.musinsa.category.exception.ErrorCode;
 import lombok.*;
@@ -30,6 +32,11 @@ public class Category {
 
     @Column(length = 1000)
     private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", length = 1)
+    @Builder.Default
+    private Gender gender = Gender.A;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
@@ -69,7 +76,12 @@ public class Category {
     @Column(name = "updated_by", length = 50)
     private String updatedBy;
 
-    public void updateInfo(String name, String description, Integer displayOrder) {
+    public void updateInfo(CategoryRequest request) {
+        String name = request.getName();
+        String description= request.getDescription();
+        Integer displayOrder =request.getDisplayOrder();
+        Gender gender = request.getGender();
+
         if (name != null && !name.trim().isEmpty()) {
             this.name = name.trim();
         }
@@ -78,6 +90,9 @@ public class Category {
         }
         if (displayOrder != null && 0 <= displayOrder) {
             this.displayOrder = displayOrder;
+        }
+        if(gender != null){
+            this.gender = gender;
         }
     }
 
@@ -107,8 +122,10 @@ public class Category {
     public void updateAuditInfo(String userId) {
         if (this.createdBy == null) {
             this.createdBy = userId;
+            this.createdAt = LocalDateTime.now();
         }
         this.updatedBy = userId;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void setParent(Category newParent) {
