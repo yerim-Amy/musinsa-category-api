@@ -22,6 +22,7 @@ public enum ErrorCode {
     CATEGORY_SELF_PARENT(HttpStatus.BAD_REQUEST,"C010", "자기 자신을 부모로 설정할 수 없습니다."),
     CATEGORY_INVALID_PARENT(HttpStatus.BAD_REQUEST,"C011", "하위 카테고리를 부모로 설정할 수 없습니다."),
     DISPLAY_ORDER_DUPLICATE(HttpStatus.BAD_REQUEST, "C012", "중복된 정렬 순서가 있습니다."),
+    CATEGORY_ALREADY_ACTIVE(HttpStatus.BAD_REQUEST, "C013", "이미 활성화된 카테고리입니다."),
 
     // 인증 관련 에러
     INVALID_ADMIN_CREDENTIALS(HttpStatus.UNAUTHORIZED,"A001", "잘못된 계정 정보입니다."),
@@ -33,7 +34,9 @@ public enum ErrorCode {
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "G001", "잘못된 입력값입니다."),
     INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "G002", "잘못된 인수값입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "G003", "서버 내부 오류가 발생했습니다."),
-    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "G004", "지원하지 않는 HTTP 메서드입니다.");
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "G004", "지원하지 않는 HTTP 메서드입니다."),
+    CONTENT_TYPE_NOT_ALLOWED(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "G005", "지원하지 않는 Content-Type 입니다 : "),
+    MESSAGE_NOT_ALLOWED(HttpStatus.BAD_REQUEST,"G006","요청 본문을 읽을 수 없습니다");
 
     private final HttpStatus httpStatus;
     private final String code;

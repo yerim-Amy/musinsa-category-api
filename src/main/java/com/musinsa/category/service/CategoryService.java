@@ -166,6 +166,10 @@ public class CategoryService {
             throw new BusinessException(ErrorCode.CATEGORY_INACTIVE_PARENT);
         }
 
+        if(category.getIsActive()){
+            throw new BusinessException(ErrorCode.CATEGORY_ALREADY_ACTIVE);
+        }
+
         category.activate();
         category.updateAuditInfo(adminId);
 
@@ -289,7 +293,7 @@ public class CategoryService {
         log.debug("카테고리 검색 - keyword: {}", keyword);
 
         if (!StringUtils.hasText(keyword) || keyword.trim().length() < MIN_SEARCH_KEYWORD_LENGTH) {
-            return Collections.emptyList();
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
         List<Category> categories = categoryRepository.searchByName(keyword.trim());

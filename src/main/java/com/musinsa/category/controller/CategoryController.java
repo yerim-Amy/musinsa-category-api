@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -38,7 +39,7 @@ public class CategoryController {
     @Operation(summary = "카테고리 생성", description = "새로운 카테고리를 생성합니다")
     public ApiResponse<CategoryResponse> createCategory(
             HttpServletRequest httpRequest,
-            @Valid @RequestBody CategoryRequest request) {
+            @Validated(CategoryRequest.CreateGroup.class) @RequestBody CategoryRequest request) {
         String authHeader = httpRequest.getHeader("Authorization");
         String adminId = validateTokenAndGetAdminId(authHeader);
         log.info("카테고리 생성 요청: {}", request.getName());
@@ -55,8 +56,8 @@ public class CategoryController {
     public ApiResponse<CategoryResponse> updateCategory(
             HttpServletRequest httpRequest,
             @Parameter(description = "카테고리 ID") @PathVariable Long id,
-            @Valid @RequestBody CategoryRequest request) {
-
+            @Validated(CategoryRequest.UpdateGroup.class) @RequestBody CategoryRequest request) {
+        validateRequestId(id);
         String authHeader = httpRequest.getHeader("Authorization");
         String adminId = validateTokenAndGetAdminId(authHeader);
         log.info("카테고리 수정 요청 - ID: {}, name: {}", id, request.getName());
@@ -73,6 +74,7 @@ public class CategoryController {
     public ApiResponse<Void> deleteCategory(
             HttpServletRequest httpRequest,
             @Parameter(description = "카테고리 ID") @PathVariable Long id) {
+        validateRequestId(id);
         String authHeader = httpRequest.getHeader("Authorization");
         String adminId = validateTokenAndGetAdminId(authHeader);
         log.info("카테고리 삭제 요청 - ID: {} by {}", id, adminId);
@@ -89,10 +91,12 @@ public class CategoryController {
     public ApiResponse<Void> realDeleteCategory(
             HttpServletRequest httpRequest,
             @Parameter(description = "카테고리 ID") @PathVariable Long id,
-            @RequestParam(required = true) boolean confirm) {
+            @RequestParam(required = false, defaultValue = "false") boolean confirm) {
+        validateRequestId(id);
         if (!confirm) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "confirm 파라미터를 확인해주세요");
         }
+
         String authHeader = httpRequest.getHeader("Authorization");
         String adminId = validateTokenAndGetAdminId(authHeader);
         log.info("카테고리 완전 삭제 요청 - ID: {} by {}", id, adminId);
@@ -109,6 +113,7 @@ public class CategoryController {
     public ApiResponse<Void> activateCategory(
             HttpServletRequest httpRequest,
             @Parameter(description = "카테고리 ID") @PathVariable Long id) {
+        validateRequestId(id);
         String authHeader = httpRequest.getHeader("Authorization");
         String adminId = validateTokenAndGetAdminId(authHeader);
         log.info("카테고리 활성화 요청 - ID: {} by {}", id, adminId);
@@ -123,7 +128,7 @@ public class CategoryController {
     @Operation(summary = "카테고리 조회", description = "특정 카테고리를 조회합니다")
     public ApiResponse<CategoryResponse> getCategory(
             @Parameter(description = "카테고리 ID") @PathVariable Long id) {
-
+        validateRequestId(id);
         CategoryResponse response = categoryService.getCategoryById(id);
         return ApiResponse.success(response);
     }
@@ -135,7 +140,7 @@ public class CategoryController {
     @Operation(summary = "하위 카테고리 조회", description = "특정 카테고리의 직계 하위 카테고리들을 조회합니다")
     public ApiResponse<List<CategoryResponse>> getDirectChildren(
             @Parameter(description = "부모 카테고리 ID") @PathVariable Long id) {
-
+        validateRequestId(id);
         List<CategoryResponse> children = categoryService.getDirectChildren(id);
         return ApiResponse.success(children);
     }
@@ -194,6 +199,12 @@ public class CategoryController {
 
         List<CategoryResponse> results = categoryService.searchCategories(keyword);
         return ApiResponse.success(results);
+    }
+
+    private void validateRequestId(Long id){
+        if (id == null || id <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
     }
 
     /**
