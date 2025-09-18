@@ -116,7 +116,6 @@ public class CategoryController {
         return ApiResponse.success(null, "카테고리가 성공적으로 활성화되었습니다");
     }
 
-    // ==== 조회 API들 ====
     /**
      * 단일 카테고리 조회
      */

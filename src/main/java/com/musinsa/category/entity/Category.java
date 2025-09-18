@@ -1,12 +1,10 @@
 package com.musinsa.category.entity;
 
-import com.musinsa.category.dto.CategoryRequest;
 import com.musinsa.category.enums.Gender;
-import com.musinsa.category.exception.BusinessException;
-import com.musinsa.category.exception.ErrorCode;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.util.StringUtils;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -42,14 +40,14 @@ public class Category {
     @JoinColumn(name = "parent_id")
     private Category parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "parent")
     @OrderBy("displayOrder ASC")
     @Builder.Default
     private List<Category> children = new ArrayList<>();
 
     @Column(name = "display_order", nullable = false)
     @Builder.Default
-    private Integer displayOrder = 0;
+    private Integer displayOrder = 1;
 
     @Column(nullable = false)
     @Builder.Default
@@ -77,13 +75,13 @@ public class Category {
     private String updatedBy;
 
     public void updateInfo( String name, String description, Integer displayOrder, Gender gender) {
-        if (name != null && !name.trim().isEmpty()) {
+        if (StringUtils.hasText(name)) {
             this.name = name.trim();
         }
         if (description != null) {
             this.description = description.trim().isEmpty() ? null : description.trim();
         }
-        if (displayOrder != null && 0 <= displayOrder) {
+        if (displayOrder != null && 0 < displayOrder) {
             this.displayOrder = displayOrder;
         }
         if(gender != null){
@@ -109,9 +107,7 @@ public class Category {
             this.path = "/" + this.id;
             this.depth = 0;
         }
-        for (Category child : this.children) {
-            child.updatePathAndDepth();
-        }
+        this.children.forEach(Category::updatePathAndDepth);
     }
 
     public void updateAuditInfo(String userId) {
@@ -124,17 +120,17 @@ public class Category {
     }
 
     public void setParent(Category newParent) {
-        // 자신을 부모로 설정하는 경우 방지
-        if (newParent != null && newParent.equals(this)) {
-            throw new BusinessException(ErrorCode.CATEGORY_SELF_PARENT);
-        }
-        // 모든 하위를 부모로 설정하는 경우 방지 (직계 + 후손 체크)
-        if (newParent != null && newParent.isDescendantOf(this)) {
-            throw new BusinessException(ErrorCode.CATEGORY_INVALID_PARENT);
+        // 기존 부모에서 제거
+        if (this.parent != null) {
+            this.parent.children.remove(this);
         }
 
         this.parent = newParent;
-        updatePathAndDepth();
+
+        // 새 부모에 추가
+        if (newParent != null) {
+            newParent.children.add(this);
+        }
     }
 
     // path 기반으로 하위인지 체크

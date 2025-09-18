@@ -25,6 +25,8 @@ public class CategoryService {
 
     private static final int MAX_CATEGORY_DEPTH = 4;
     private static final int MAX_CATEGORY_NAME_LENGTH = 100;
+    private static final int MIN_SEARCH_KEYWORD_LENGTH = 2;
+    private static final int MIN_DISPLAY_ORDER = 1;
 
     /**
      * 카테고리 생성
@@ -40,53 +42,27 @@ public class CategoryService {
         }
 
         String trimmedName = request.getName().trim();
-        if (trimmedName.length() > MAX_CATEGORY_NAME_LENGTH) {
-            throw new BusinessException(ErrorCode.CATEGORY_NAME_TOO_LONG);
-        }
+        validateNameLength(trimmedName);
 
         // 이름 중복 검증
-        checkDuplicateName(request.getName(), request.getParentId());
+        Long requestParentId = request.getParentId();
+        validateNameDuplication(trimmedName, requestParentId);
 
         // 부모 카테고리 검증
         Category parent = null;
-        if (request.getParentId() != null) {
-            parent = categoryRepository.findActiveById(request.getParentId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_PARENT_NOT_FOUND));
-
-            // 깊이 제한 검증
-            if (parent.getDepth() >= MAX_CATEGORY_DEPTH) {
-                throw new BusinessException(ErrorCode.CATEGORY_DEPTH_EXCEEDED);
+        if (requestParentId != null) {
+            parent = getParentById(requestParentId);
+            if (MAX_CATEGORY_DEPTH <= parent.getDepth()) {
+                throw new BusinessException(ErrorCode.CATEGORY_DEPTH_EXCEEDED, "최대 깊이 : " + MAX_CATEGORY_DEPTH);
             }
         }
 
-        // displayOrder 중복 검증
-        Integer displayOrder = request.getDisplayOrder();
-        if (displayOrder != null) {
-            if (displayOrder < 1) {
-                throw new BusinessException(ErrorCode.INVALID_DISPLAY_ORDER);
-            }
+        // 설정할 displayOrder 계산
+        Integer displayOrder = calculateDisplayOrder(request, requestParentId);
 
-            Optional<Category> existingCategory = categoryRepository.findByParentIdAndDisplayOrder(request.getParentId(), displayOrder);
-            if (existingCategory.isPresent()) {
-                String conflictInfo = String.format("'%s' 카테고리", existingCategory.get().getName());
-                String errorMessage = String.format("순서 %d번은 이미 %s에서 사용 중입니다. 다른 순서를 선택해주세요.", displayOrder, conflictInfo);
-                throw new BusinessException(ErrorCode.DISPLAY_ORDER_DUPLICATE, errorMessage);
-            }
-        } else {
-            // displayOrder가 지정되지 않은 경우 자동 할당
-            displayOrder = getNextDisplayOrder(request.getParentId(), request.getGender());
-            log.info("displayOrder 자동 할당 - parentId: {}, 할당된 순서: {}", request.getParentId(), displayOrder);
-        }
-
-        return createNewCategory(request, adminId, parent, displayOrder);
-    }
-
-    // 카테고리 생성
-    private CategoryResponse createNewCategory(CategoryRequest request, String adminId, Category parent, Integer displayOrder) {
         Category category = Category.builder()
-                .name(request.getName().trim())
+                .name(trimmedName)
                 .description(request.getDescription())
-                .parent(parent)
                 .displayOrder(displayOrder)
                 .gender(request.getGender())
                 .isActive(true)
@@ -95,10 +71,15 @@ public class CategoryService {
                 .build();
 
         Category savedCategory = categoryRepository.save(category);
+        // 부모-자식 관계 설정
+        if (parent != null) {
+            savedCategory.setParent(parent);
+        }
         savedCategory.updatePathAndDepth();
 
         log.info("카테고리 생성 완료 - ID: {}, Name: '{}', Path: {}, DisplayOrder: {}, adminId: {}",
-                savedCategory.getId(), savedCategory.getName(), savedCategory.getPath(), savedCategory.getDisplayOrder(), adminId);
+                savedCategory.getId(), savedCategory.getName(), savedCategory.getPath(),
+                savedCategory.getDisplayOrder(), adminId);
 
         return CategoryResponse.from(savedCategory);
     }
@@ -110,66 +91,30 @@ public class CategoryService {
     public CategoryResponse updateCategory(Long categoryId, CategoryRequest request, String adminId) {
         log.info("카테고리 수정 요청 - ID: {}, adminId: {}", categoryId, adminId);
 
-        // 1. 카테고리 존재 여부 확인
-        Category category = categoryRepository.findActiveById(categoryId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-        Category categoryParent = category.getParent();
-        Long categoryParentId = categoryParent != null ? categoryParent.getId() : null;
+        Category category = getActiveCategoryById(categoryId);
+        Long currentParentId = category.getParent() != null ? category.getParent().getId() : null;
 
-        // 2. 변경할 이름 이미 존재하는지 확인
+        // 변경할 이름 이미 존재하는지 검증
         String requestName = request.getName();
         if (requestName != null && !requestName.equals(category.getName())) {
-            checkDuplicateName(requestName, categoryParentId);
+            validateNameLength(requestName);
+            validateNameDuplication(requestName, currentParentId);
         }
 
-        // 3. 부모 카테고리 변경 시
-        Long requestParentId = request.getParentId();
-        Long finalParentId = categoryParentId; // 최종 적용될 parentId
-        Category newParent = null;
-        if (requestParentId != null && !requestParentId.equals(categoryParentId)) {
-            log.info("parentId 검색 시작: {}", requestParentId);
+        // 부모 카테고리 변경 시
+        Category newParent = getNewParent(request, category, currentParentId);
+        Long newParentId = newParent != null ? newParent.getId() : currentParentId;
 
-            Optional<Category> parentOptional = categoryRepository.findActiveById(requestParentId);
-            if (parentOptional.isEmpty()) {
-                String errMessage = String.format("입력한 parentId %d에 해당하는 부모 카테고리가 없습니다.", requestParentId);
-                throw new BusinessException(ErrorCode.CATEGORY_PARENT_NOT_FOUND, errMessage);
-            }
-            newParent = parentOptional.get();
-            finalParentId = requestParentId; // 부모가 변경되면 새로운 부모 ID 사용
-        }
+        // 설정할 displayOrder 계산
+        Integer displayOrder = calculateDisplayOrder(request, newParentId);
 
-        // 4. displayOrder 중복 검증
-        Integer displayOrder = request.getDisplayOrder();
-
-        if (displayOrder != null) {
-            log.info("displayOrder 검증 시작 - parentId: {}, displayOrder: {}", finalParentId, displayOrder);
-
-            if (displayOrder < 1) {
-                throw new BusinessException(ErrorCode.INVALID_DISPLAY_ORDER);
-            }
-
-            Optional<Category> existingCategory = categoryRepository.findByParentIdAndDisplayOrder(finalParentId, displayOrder);
-            if (existingCategory.isPresent()) {
-                String conflictInfo = String.format("'%s' 카테고리", existingCategory.get().getName());
-                String errorMessage = String.format("순서 %d번은 이미 %s에서 사용 중입니다. 다른 순서를 선택해주세요.", displayOrder, conflictInfo);
-                throw new BusinessException(ErrorCode.DISPLAY_ORDER_DUPLICATE, errorMessage);
-            }
-        } else {
-            log.info("displayOrder 할당 시작: {}", displayOrder);
-
-            // displayOrder가 지정되지 않은 경우 자동 할당
-            displayOrder = getNextDisplayOrder(finalParentId, request.getGender());
-            log.info("displayOrder 자동 할당 - parentId: {}, 할당된 순서: {}", request.getParentId(), displayOrder);
-        }
-
-        log.info("displayOrder 업뎃 시작: {}", displayOrder);
-
-        // 4. 요청 정보 업데이트
+        // 요청한 카테고리 정보 업데이트
         category.updateInfo(requestName, request.getDescription(), displayOrder, request.getGender());
         category.updateAuditInfo(adminId);
 
         if (newParent!=null) {
             category.setParent(newParent);
+            category.updatePathAndDepth();
         }
 
         log.info("카테고리 수정 완료 - ID: {}, adminId: {}", categoryId, adminId);
@@ -183,16 +128,9 @@ public class CategoryService {
     public void deleteCategory(Long categoryId, String adminId) {
         log.info("카테고리 삭제 요청 - ID: {}, adminId: {}", categoryId, adminId);
 
-        Category category = categoryRepository.findActiveById(categoryId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
+        Category category = getActiveCategoryById(categoryId);
+        validateHasNoChildren(categoryId);
 
-        // 하위 카테고리 존재 확인
-        List<Category> activeChildren = categoryRepository.findChildrenByParentId(categoryId);
-        if (!activeChildren.isEmpty()) {
-            throw new BusinessException(ErrorCode.CATEGORY_HAS_CHILDREN);
-        }
-
-        // 비활성화 처리
         category.deactivate();
         category.updateAuditInfo(adminId);
 
@@ -206,14 +144,8 @@ public class CategoryService {
     public void realDeleteCategory(Long categoryId, String adminId) {
         log.warn("카테고리 물리적 삭제 요청 - ID: {}, adminId: {}", categoryId, adminId);
 
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-
-        // 하위 카테고리 존재 확인
-        List<Category> allChildren = categoryRepository.findChildrenByParentId(categoryId);
-        if (!allChildren.isEmpty()) {
-            throw new BusinessException(ErrorCode.CATEGORY_HAS_CHILDREN);
-        }
+        Category category = getActiveCategoryById(categoryId);
+        validateHasNoChildren(categoryId);
 
         categoryRepository.delete(category);
         log.warn("카테고리 물리적 삭제 완료 - ID: {}, adminId: {}", categoryId, adminId);
@@ -226,7 +158,7 @@ public class CategoryService {
     public void activateCategory(Long categoryId, String adminId) {
         log.info("카테고리 활성화 요청 - ID: {}, adminId: {}", categoryId, adminId);
 
-        Category category = categoryRepository.findById(categoryId)
+        Category category =  categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
         // 부모가 비활성 상태면 활성화 불가
@@ -246,10 +178,7 @@ public class CategoryService {
     @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long categoryId) {
         log.debug("카테고리 조회 - ID: {}", categoryId);
-
-        Category category = categoryRepository.findActiveById(categoryId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-
+        Category category = getActiveCategoryById(categoryId);
         return CategoryResponse.from(category);
     }
 
@@ -263,13 +192,10 @@ public class CategoryService {
         List<Category> children;
         if (parentId == null) {
             // 루트 카테고리들 조회
-            children = categoryRepository.findRootCategories(Gender.A);
+            children = categoryRepository.findRootCategories(null);
         } else {
-            // 부모 존재 여부 확인
-            categoryRepository.findActiveById(parentId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-
-            // 하위 카테고리들 조회
+            // 부모 존재 여부 확인 후, 하위 카테고리들 조회
+            getParentById(parentId);
             children = categoryRepository.findChildrenByParentId(parentId);
         }
 
@@ -292,11 +218,13 @@ public class CategoryService {
             categories = categoryRepository.findAllActiveWithParent(gender);
         } else {
             // 특정 카테고리와 하위 카테고리들 조회
-            Category rootCategory = categoryRepository.findActiveById(categoryId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-
+            Category rootCategory = getActiveCategoryById(categoryId);
             categories = categoryRepository.findDescendants(rootCategory.getPath(),gender);
             categories.add(0, rootCategory); // 본인도 포함
+        }
+
+        if (categories.isEmpty()) {
+            return Collections.emptyList();
         }
 
         // ID를 키로 하는 카테고리 맵 생성
@@ -309,15 +237,13 @@ public class CategoryService {
             categoryMap.put(category.getId(), response);
         }
 
-        // 트리 구조 구성
+        // 부모-자식 트리 설정
         for (Category category : categories) {
             CategoryResponse response = categoryMap.get(category.getId());
 
             if (category.getParent() == null) {
-                // 루트 카테고리
                 rootCategories.add(response);
             } else {
-                // 하위 카테고리 - 부모에 연결
                 CategoryResponse parent = categoryMap.get(category.getParent().getId());
                 if (parent != null) {
                     parent.addChild(response);
@@ -326,7 +252,6 @@ public class CategoryService {
         }
 
         sortCategoryByDisplayOrder(rootCategories);
-
         return rootCategories;
     }
 
@@ -335,7 +260,7 @@ public class CategoryService {
      */
     @Transactional(readOnly = true)
     public List<CategoryResponse> getRootCategories(Gender gender) {
-        log.debug("루트 카테고리 조회");
+        log.debug("루트 카테고리 조회 - Gender: {}", gender);
 
         List<Category> rootCategories = categoryRepository.findRootCategories(gender);
         return rootCategories.stream()
@@ -348,7 +273,7 @@ public class CategoryService {
      */
     @Transactional(readOnly = true)
     public List<CategoryResponse> getAllCategories(Gender gender) {
-        log.debug("전체 카테고리 조회");
+        log.debug("전체 카테고리 조회 - Gender: {}", gender);
 
         List<Category> categories = categoryRepository.findAllActiveOrdered(gender);
         return categories.stream()
@@ -363,35 +288,104 @@ public class CategoryService {
     public List<CategoryResponse> searchCategories(String keyword) {
         log.debug("카테고리 검색 - keyword: {}", keyword);
 
-        if (!StringUtils.hasText(keyword) || keyword.trim().length() < 2) {
+        if (!StringUtils.hasText(keyword) || keyword.trim().length() < MIN_SEARCH_KEYWORD_LENGTH) {
             return Collections.emptyList();
         }
 
         List<Category> categories = categoryRepository.searchByName(keyword.trim());
-
         return categories.stream()
                 .map(CategoryResponse::from)
                 .collect(Collectors.toList());
     }
 
-    // 중복 이름 확인
-    private void checkDuplicateName(String name, Long parentId) {
-        boolean exists = categoryRepository.existsByNameAndParent(name.trim(), parentId);
-        if (exists) {
+    private void validateNameLength(String name) {
+        String trimmedName = name.trim();
+        if (MAX_CATEGORY_NAME_LENGTH < trimmedName.length()) {
+            throw new BusinessException(ErrorCode.CATEGORY_NAME_TOO_LONG);
+        }
+    }
+
+    private void validateNameDuplication(String name, Long parentId) {
+        if (categoryRepository.existsByNameAndParent(name.trim(), parentId)) {
             throw new BusinessException(ErrorCode.CATEGORY_NAME_DUPLICATE);
         }
     }
 
-    // 다음 정렬 순서 계산
-    private Integer getNextDisplayOrder(Long parentId, Gender gender) {
-        List<Category> siblings = (parentId == null)
-                ?  categoryRepository.findRootCategories(gender)        // 루트 레벨의 다음 순서
-                : categoryRepository.findChildrenByParentId(parentId);  // 특정 부모의 하위 레벨의 다음 순서
-        return siblings.isEmpty() ? 1 : siblings.stream().mapToInt(Category::getDisplayOrder).max().orElse(0) + 1;
+    private void validateHasNoChildren(Long categoryId) {
+        List<Category> children = categoryRepository.findChildrenByParentId(categoryId);
+        if (!children.isEmpty()) {
+            throw new BusinessException(ErrorCode.CATEGORY_HAS_CHILDREN);
+        }
     }
 
-    // displayOrder 순으로 정렬
+    private Category getActiveCategoryById(Long categoryId) {
+        return categoryRepository.findActiveById(categoryId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
+    }
+
+    private Category getParentById(Long parentId) {
+        Optional<Category> parentOptional = categoryRepository.findActiveById(parentId);
+        if (parentOptional.isEmpty()) {
+            String errMessage = String.format("입력한 parentId %d에 해당하는 부모 카테고리가 없습니다.", parentId);
+            throw new BusinessException(ErrorCode.CATEGORY_PARENT_NOT_FOUND, errMessage);
+        }
+        return parentOptional.get();
+    }
+
+    private Category getNewParent(CategoryRequest request, Category category, Long currentParentId){
+        Long requestParentId = request.getParentId();
+        if (requestParentId != null && !requestParentId.equals(currentParentId)) {
+            Category newParent = getParentById(requestParentId);
+            // 자신을 부모로 설정하는 경우 방지
+            if (newParent.equals(category)) {
+                throw new BusinessException(ErrorCode.CATEGORY_SELF_PARENT);
+            }
+            // 모든 하위를 부모로 설정하는 경우 방지 (직계 + 후손 체크)
+            if (newParent.isDescendantOf(category)) {
+                throw new BusinessException(ErrorCode.CATEGORY_INVALID_PARENT);
+            }
+            return newParent;
+        }
+        return null;
+    }
+
+    private Integer getNextDisplayOrder(Long parentId, Gender gender) {
+        List<Category> siblings = (parentId == null)
+                ? categoryRepository.findRootCategories(gender)        // 루트 레벨의 다음 순서
+                : categoryRepository.findChildrenByParentId(parentId);  // 특정 부모의 하위 레벨의 다음 순서
+        return siblings.isEmpty() ? 1 :
+                siblings.stream().mapToInt(Category::getDisplayOrder).max().orElse(0) + 1;
+    }
+
+    private Integer calculateDisplayOrder(CategoryRequest request, Long parentId) {
+        Integer displayOrder = request.getDisplayOrder();
+
+        if (displayOrder != null) {
+            if (displayOrder < MIN_DISPLAY_ORDER) {
+                throw new BusinessException(ErrorCode.INVALID_DISPLAY_ORDER);
+            }
+
+            Optional<Category> existingCategory = categoryRepository.findByParentIdAndDisplayOrder(parentId, displayOrder);
+            if (existingCategory.isPresent()) {
+                String conflictInfo = String.format("'%s' 카테고리", existingCategory.get().getName());
+                String errorMessage = String.format("순서 %d번은 이미 %s에서 사용 중입니다. 다른 순서를 선택해주세요.",
+                        displayOrder, conflictInfo);
+                throw new BusinessException(ErrorCode.DISPLAY_ORDER_DUPLICATE, errorMessage);
+            }
+            return displayOrder;
+        }
+
+        // displayOrder 설정이 없으면 자동 할당
+        Integer nextOrder = getNextDisplayOrder(parentId, request.getGender());
+        log.debug("displayOrder 자동 할당 - parentId: {}, 할당된 순서: {}", parentId, nextOrder);
+        return nextOrder;
+    }
+
+
     private void sortCategoryByDisplayOrder(List<CategoryResponse> categories) {
+        if (categories == null || categories.isEmpty()) {
+            return;
+        }
         categories.sort(Comparator.comparing(CategoryResponse::getDisplayOrder));
 
         // 하위 카테고리들도 정렬
