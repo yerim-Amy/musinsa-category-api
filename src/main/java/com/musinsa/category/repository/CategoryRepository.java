@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
-    String GENDER_CONDITION = " (c.gender = :gender OR c.gender = 'A' OR c.gender IS NULL) ";
+    String GENDER_CONDITION = " ((:gender = 'A' AND 1=1) OR (c.gender = :gender OR c.gender = 'A' OR c.gender IS NULL)) ";
     String PARENT_CONDITION = " ((:parentId IS NULL AND c.parent IS NULL) OR (c.parent.id = :parentId)) ";
 
     // =========== 조회 ===========
@@ -29,7 +29,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      */
     @Query("SELECT c FROM Category c WHERE c.isActive = true AND" +
             GENDER_CONDITION + "ORDER BY c.depth ASC, c.displayOrder ASC")
-    List<Category> findAllActiveOrdered(@Param("gender") Gender gender);
+    List<Category> findAllActiveOrdered(@Param("gender") String gender);
 
     // ======= 부모-자식 관계 조회 =======
 
@@ -38,14 +38,14 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      */
     @Query("SELECT c FROM Category c WHERE c.parent IS NULL AND c.isActive = true AND" +
             GENDER_CONDITION + "ORDER BY c.displayOrder ASC")
-    List<Category> findRootCategories(@Param("gender") Gender gender);
+    List<Category> findRootCategories(@Param("gender") String gender);
 
     /**
      * 모든 활성 카테고리 조회 (부모 정보 포함)
      */
     @Query("SELECT c FROM Category c LEFT JOIN FETCH c.parent WHERE c.isActive = true AND" +
             GENDER_CONDITION + "ORDER BY c.path")
-    List<Category> findAllActiveWithParent(@Param("gender") Gender gender);
+    List<Category> findAllActiveWithParent(@Param("gender") String gender);
 
     /**
      * 특정 부모의 자식 카테고리들 조회 (displayOrder 순)
@@ -58,7 +58,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      */
     @Query("SELECT c FROM Category c WHERE c.isActive = true AND c.path LIKE CONCAT(:parentPath, '/%') AND" +
             GENDER_CONDITION + "ORDER BY c.depth ASC, c.displayOrder ASC")
-    List<Category> findDescendants(@Param("parentPath") String parentPath, @Param("gender") Gender gender);
+    List<Category> findDescendants(@Param("parentPath") String parentPath, @Param("gender") String gender);
 
 
     // ========= 카테고리 검색 =========

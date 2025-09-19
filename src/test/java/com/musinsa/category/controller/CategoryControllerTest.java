@@ -359,6 +359,25 @@ class CategoryControllerTest {
     class GetCategoryTests {
 
         @Test
+        @DisplayName("성공 -루트 전체 조회")
+        void getRootCategories_NoPaging() throws Exception {
+
+            List<CategoryResponse> categories = Arrays.asList(
+                    sampleResponse,
+                    createSampleResponse(2L, "하의", "하의 카테고리", null, 0, Gender.A, 2)
+            );
+            given(categoryService.getRootCategories(Gender.A))
+                    .willReturn(categories);
+
+            mockMvc.perform(get("/api/categories/roots")
+                            .param("gender", "A"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data", hasSize(2)))
+                    .andExpect(jsonPath("$.data[0].name").value("상의"))
+                    .andExpect(jsonPath("$.data[1].name").value("하의"));
+        }
+
+        @Test
         @DisplayName("성공 - 그냥 전체 조회")
         void getAllCategories_NoPaging() throws Exception {
             

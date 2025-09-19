@@ -219,11 +219,11 @@ public class CategoryService {
 
         if (categoryId == null) {
             // 전체 카테고리 트리 조회
-            categories = categoryRepository.findAllActiveWithParent(gender);
+            categories = categoryRepository.findAllActiveWithParent(gender.name());
         } else {
             // 특정 카테고리와 하위 카테고리들 조회
             Category rootCategory = getActiveCategoryById(categoryId);
-            categories = categoryRepository.findDescendants(rootCategory.getPath(),gender);
+            categories = categoryRepository.findDescendants(rootCategory.getPath(),gender.name());
             categories.add(0, rootCategory); // 본인도 포함
         }
 
@@ -266,7 +266,7 @@ public class CategoryService {
     public List<CategoryResponse> getRootCategories(Gender gender) {
         log.debug("루트 카테고리 조회 - Gender: {}", gender);
 
-        List<Category> rootCategories = categoryRepository.findRootCategories(gender);
+        List<Category> rootCategories = categoryRepository.findRootCategories(gender.name());
         return rootCategories.stream()
                 .map(CategoryResponse::from)
                 .collect(Collectors.toList());
@@ -279,7 +279,7 @@ public class CategoryService {
     public List<CategoryResponse> getAllCategories(Gender gender) {
         log.debug("전체 카테고리 조회 - Gender: {}", gender);
 
-        List<Category> categories = categoryRepository.findAllActiveOrdered(gender);
+        List<Category> categories = categoryRepository.findAllActiveOrdered(gender.name());
         return categories.stream()
                 .map(CategoryResponse::from)
                 .collect(Collectors.toList());
@@ -355,7 +355,7 @@ public class CategoryService {
 
     private Integer getNextDisplayOrder(Long parentId, Gender gender) {
         List<Category> siblings = (parentId == null)
-                ? categoryRepository.findRootCategories(gender)        // 루트 레벨의 다음 순서
+                ? categoryRepository.findRootCategories(gender.name())        // 루트 레벨의 다음 순서
                 : categoryRepository.findChildrenByParentId(parentId);  // 특정 부모의 하위 레벨의 다음 순서
         return siblings.isEmpty() ? 1 :
                 siblings.stream().mapToInt(Category::getDisplayOrder).max().orElse(0) + 1;

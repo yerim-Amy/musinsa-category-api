@@ -316,7 +316,7 @@ class CategoryServiceTest {
         @Test
         @DisplayName("성공 - 루트 카테고리들 조회")
         void getRootCategories_Success() {
-            given(categoryRepository.findRootCategories(Gender.A))
+            given(categoryRepository.findRootCategories(Gender.A.name()))
                     .willReturn(Arrays.asList(parentCategory));
 
             List<CategoryResponse> roots = categoryService.getRootCategories(Gender.A);
@@ -329,7 +329,7 @@ class CategoryServiceTest {
         @DisplayName("성공 - 카테고리 트리 조회")
         void getCategoryTree_Success() {
             
-            given(categoryRepository.findAllActiveWithParent(Gender.A))
+            given(categoryRepository.findAllActiveWithParent(Gender.A.name()))
                     .willReturn(Arrays.asList(parentCategory, childCategory));
 
             List<CategoryResponse> tree = categoryService.getCategoryTree(null, Gender.A);
