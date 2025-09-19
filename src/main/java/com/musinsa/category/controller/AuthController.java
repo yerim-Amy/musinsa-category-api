@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.validation.Valid;
 import java.util.Date;
@@ -25,11 +26,11 @@ public class AuthController {
 
     private final JwtUtil jwtUtil;
 
-    // TODO 관리자 계정 (테스트용)
-    private static final Map<String, String> ADMIN_ACCOUNTS = Map.of(
-            "admin", "musinsa2025!",
-            "category", "category123!",
-            "system", "system");
+    @Value("${test-account.username}")
+    private String account_username;
+
+    @Value("${test-account.password}")
+    private String account_password;
 
     /**
      * 관리자 토큰 발급
@@ -84,7 +85,6 @@ public class AuthController {
      * 관리자 계정 검증
      */
     private boolean isValidAdmin(String adminId, String password) {
-        String expectedPassword = ADMIN_ACCOUNTS.get(adminId);
-        return expectedPassword != null && expectedPassword.equals(password);
+        return account_username.equals(adminId) && account_password.equals(password);
     }
 }

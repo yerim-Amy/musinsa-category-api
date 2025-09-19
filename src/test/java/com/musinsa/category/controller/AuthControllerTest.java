@@ -72,9 +72,7 @@ class AuthControllerTest {
         @DisplayName("모든 유효한 관리자 계정으로 토큰 발급 성공")
         void issueToken_WithAllValidAccounts_Success() throws Exception {
             Map<String, String> validAccounts = Map.of(
-                    "admin", "musinsa2025!",
-                    "category", "category123!",
-                    "system", "system"
+                    "admin", "musinsa2025!"
             );
 
             String expectedToken = "test.jwt.token";
@@ -274,9 +272,7 @@ class AuthControllerTest {
         @DisplayName("모든 유효한 관리자 계정 검증")
         void validateAllAdminAccounts_Success() throws Exception {
             Map<String, String> accounts = Map.of(
-                    "admin", "musinsa2025!",
-                    "category", "category123!",
-                    "system", "system"
+                    "admin", "musinsa2025!"
             );
 
             String token = "test.token";
