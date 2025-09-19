@@ -125,7 +125,7 @@ public class CategoryController {
      * 단일 카테고리 조회
      */
     @GetMapping("/{id}")
-    @Operation(summary = "카테고리 조회", description = "특정 카테고리를 조회합니다")
+    @Operation(summary = "단일 카테고리 조회", description = "특정 카테고리를 조회합니다")
     public ApiResponse<CategoryResponse> getCategory(
             @Parameter(description = "카테고리 ID") @PathVariable Long id) {
         validateRequestId(id);

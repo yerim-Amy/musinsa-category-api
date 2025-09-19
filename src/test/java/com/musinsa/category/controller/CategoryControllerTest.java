@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CategoryController.class)
-@DisplayName("CategoryController Unit Tests")
+@DisplayName("CategoryController 단위 테스트")
 class CategoryControllerTest {
 
     @Autowired
@@ -60,11 +60,8 @@ class CategoryControllerTest {
         validToken = "valid-jwt-token";
         adminId = "admin123";
 
-        // JWT Mock 설정
-        given(jwtUtil.extractTokenFromHeader("Bearer " + validToken))
-                .willReturn(validToken);
-        given(jwtUtil.isTokenValid(validToken))
-                .willReturn(true);
+        given(jwtUtil.extractTokenFromHeader("Bearer " + validToken)).willReturn(validToken);
+        given(jwtUtil.isTokenValid(validToken)).willReturn(true);
         given(jwtUtil.extractAdminId(validToken))
                 .willReturn(adminId);
 
@@ -87,7 +84,6 @@ class CategoryControllerTest {
 
             given(categoryService.createCategory(ArgumentMatchers.any(CategoryRequest.class), eq(adminId)))
                     .willReturn(sampleResponse);
-
             
             mockMvc.perform(post("/api/categories")
                             .header("Authorization", "Bearer " + validToken)
@@ -109,7 +105,7 @@ class CategoryControllerTest {
         @ParameterizedTest
         @EnumSource(Gender.class)
         @DisplayName("성공 - 모든 성별 타입으로 카테고리 생성")
-        void createCategory_AllGenderTypes(Gender gender) throws Exception {
+        void createCategory_WithAllGenderTypes_Success(Gender gender) throws Exception {
             CategoryRequest request = CategoryRequest.builder()
                     .name("테스트카테고리")
                     .gender(gender)
@@ -120,7 +116,6 @@ class CategoryControllerTest {
             given(categoryService.createCategory(ArgumentMatchers.any(CategoryRequest.class), eq(adminId)))
                     .willReturn(response);
 
-            
             mockMvc.perform(post("/api/categories")
                             .header("Authorization", "Bearer " + validToken)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -131,7 +126,7 @@ class CategoryControllerTest {
 
         @Test
         @DisplayName("성공 - 최대 깊이 자식 카테고리 생성")
-        void createDeepChildCategory_Success() throws Exception {
+        void createCategory_WithDeepChild_Success() throws Exception {
             CategoryRequest request = CategoryRequest.builder()
                     .name("상세카테고리")
                     .parentId(3L)
@@ -153,7 +148,7 @@ class CategoryControllerTest {
 
         @Test
         @DisplayName("실패 - 필수 필드 누락 (name)")
-        void createCategory_FailWithMissingName() throws Exception {
+        void createCategory_WithMissingName_Return400() throws Exception {
             CategoryRequest request = CategoryRequest.builder()
                     .description("설명만 있음")
                     .build();
@@ -171,7 +166,7 @@ class CategoryControllerTest {
         @ParameterizedTest
         @ValueSource(strings = {"", "  ", "\n", "\t"})
         @DisplayName("실패 - 빈 카테고리명")
-        void createCategory_FailWithEmptyName(String emptyName) throws Exception {
+        void createCategory_WithEmptyName_Return400(String emptyName) throws Exception {
             CategoryRequest request = CategoryRequest.builder()
                     .name(emptyName)
                     .build();
@@ -187,7 +182,7 @@ class CategoryControllerTest {
 
         @Test
         @DisplayName("실패 - 카테고리명 길이 초과")
-        void createCategory_FailWithTooLongName() throws Exception {
+        void createCategory_WithTooLongName_Return400() throws Exception {
             String longName = "A".repeat(101); // 101자
             CategoryRequest request = CategoryRequest.builder()
                     .name(longName)
@@ -202,12 +197,12 @@ class CategoryControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.code").value("G001"));
+                    .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT_VALUE.getCode()));
         }
 
         @Test
         @DisplayName("실패 - 음수 displayOrder")
-        void createCategory_FailWithNegativeDisplayOrder() throws Exception {
+        void createCategory_WithNegativeDisplayOrder_Return400() throws Exception {
             CategoryRequest request = CategoryRequest.builder()
                     .name("테스트")
                     .displayOrder(-1)
@@ -229,7 +224,7 @@ class CategoryControllerTest {
 
         @Test
         @DisplayName("성공 - 부분 수정 (이름만)")
-        void updateCategory_PartialUpdate() throws Exception {
+        void updateCategory_WithUpdateOnlyName_Success() throws Exception {
             
             Long categoryId = 1L;
             CategoryRequest request = CategoryRequest.builder()
@@ -240,7 +235,6 @@ class CategoryControllerTest {
             given(categoryService.updateCategory(eq(categoryId), ArgumentMatchers.any(CategoryRequest.class), eq(adminId)))
                     .willReturn(updatedResponse);
 
-            
             mockMvc.perform(put("/api/categories/{id}", categoryId)
                             .header("Authorization", "Bearer " + validToken)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -251,7 +245,7 @@ class CategoryControllerTest {
 
         @Test
         @DisplayName("성공 - 전체 수정")
-        void updateCategory_FullUpdate() throws Exception {
+        void updateCategory_WithFullUpdate_Success() throws Exception {
             
             Long categoryId = 1L;
             CategoryRequest request = CategoryRequest.builder()
@@ -280,7 +274,7 @@ class CategoryControllerTest {
         @ParameterizedTest
         @ValueSource(longs = {0L, -1L, -999L})
         @DisplayName("실패 - 잘못된 카테고리 ID")
-        void updateCategory_FailWithInvalidId(Long invalidId) throws Exception {
+        void updateCategory_WithInvalidId_Return400(Long invalidId) throws Exception {
             CategoryRequest request = CategoryRequest.builder()
                     .name("수정")
                     .build();
@@ -301,7 +295,7 @@ class CategoryControllerTest {
 
         @Test
         @DisplayName("성공 - 논리적 삭제")
-        void deleteCategory_SoftDelete_Success() throws Exception {
+        void deleteCategory_Success() throws Exception {
             Long categoryId = 1L;
             doNothing().when(categoryService).deleteCategory(eq(categoryId), eq(adminId));
 
@@ -316,7 +310,7 @@ class CategoryControllerTest {
 
         @Test
         @DisplayName("성공 - 물리적 삭제")
-        void deleteCategory_HardDelete_Success() throws Exception {
+        void realDeleteCategory_Success() throws Exception {
             Long categoryId = 1L;
             doNothing().when(categoryService).realDeleteCategory(eq(categoryId), eq(adminId));
             
@@ -333,19 +327,19 @@ class CategoryControllerTest {
         @ParameterizedTest
         @ValueSource(strings = {"false", "FALSE", "", "no", "0"})
         @DisplayName("실패 - 잘못된 confirm 파라미터")
-        void realDeleteCategory_FailWithInvalidConfirm(String confirmValue) throws Exception {
+        void realDeleteCategory_WithInvalidConfirm_Return400(String confirmValue) throws Exception {
             mockMvc.perform(delete("/api/categories/{id}/real", 1L)
                             .param("confirm", confirmValue)
                             .header("Authorization", "Bearer " + validToken))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.code").value("G001"));
+                    .andExpect(jsonPath("$.code").value(ErrorCode.INVALID_INPUT_VALUE.getCode()));
 
             verify(categoryService, never()).realDeleteCategory(any(), any());
         }
 
         @Test
         @DisplayName("실패 - confirm 파라미터 누락")
-        void realDeleteCategory_FailWithoutConfirmParam() throws Exception {
+        void realDeleteCategory_WithoutConfirmParam_Return400() throws Exception {
             mockMvc.perform(delete("/api/categories/{id}/real", 1L)
                             .header("Authorization", "Bearer " + validToken))
                     .andExpect(status().isBadRequest());
@@ -360,7 +354,7 @@ class CategoryControllerTest {
 
         @Test
         @DisplayName("성공 -루트 전체 조회")
-        void getRootCategories_NoPaging() throws Exception {
+        void getRootCategories_Success() throws Exception {
 
             List<CategoryResponse> categories = Arrays.asList(
                     sampleResponse,
@@ -379,7 +373,7 @@ class CategoryControllerTest {
 
         @Test
         @DisplayName("성공 - 그냥 전체 조회")
-        void getAllCategories_NoPaging() throws Exception {
+        void getAllCategories_Success() throws Exception {
             
             List<CategoryResponse> categories = Arrays.asList(
                     sampleResponse,
@@ -397,8 +391,37 @@ class CategoryControllerTest {
         }
 
         @Test
+        @DisplayName("성공 - 단일 카테고리 조회")
+        void getCategory_Success() throws Exception {
+            given(categoryService.getCategoryById(1L))
+                    .willReturn(sampleResponse);
+
+            mockMvc.perform(get("/api/categories/1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.name").value("상의"));
+        }
+
+        @Test
+        @DisplayName("성공 - 하위 카테고리 조회")
+        void getDirectChildren_Success() throws Exception {
+            CategoryResponse parentCategory = createSampleResponse(1L, "상의", null, null, 0, Gender.A, 1);
+            CategoryResponse childCategory = createSampleResponse(2L, "티셔츠", null, 1L, 1, Gender.A, 1);
+            parentCategory.getChildren().add(childCategory);
+
+            given(categoryService.getCategoryById(1L))
+                    .willReturn(sampleResponse);
+
+            given(categoryService.getDirectChildren(1L))
+                    .willReturn(Arrays.asList(parentCategory));
+
+            mockMvc.perform(get("/api/categories/1/children"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data[0].children", hasSize(1)));
+        }
+
+        @Test
         @DisplayName("성공 - 트리 구조 조회")
-        void getCategoryTree_WithChildren() throws Exception {
+        void getCategoryTree_Success() throws Exception {
             
             CategoryResponse parentCategory = createSampleResponse(1L, "상의", null, null, 0, Gender.A, 1);
             CategoryResponse childCategory = createSampleResponse(2L, "티셔츠", null, 1L, 1, Gender.A, 1);
@@ -472,7 +495,7 @@ class CategoryControllerTest {
 
         @Test
         @DisplayName("실패 - 이미 활성화된 카테고리")
-        void activateCategory_FailAlreadyActive() throws Exception {
+        void activateCategory_WithAlreadyActive_Return400() throws Exception {
             Long categoryId = 1L;
             doThrow(new BusinessException(ErrorCode.CATEGORY_ALREADY_ACTIVE))
                     .when(categoryService).activateCategory(eq(categoryId), eq(adminId));
@@ -480,7 +503,7 @@ class CategoryControllerTest {
             mockMvc.perform(patch("/api/categories/{id}/activate", categoryId)
                             .header("Authorization", "Bearer " + validToken))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.code").value("C013"));
+                    .andExpect(jsonPath("$.code").value(ErrorCode.CATEGORY_ALREADY_ACTIVE.getCode()));
         }
     }
 

@@ -107,8 +107,7 @@ class CategoryServiceTest {
 
         @Test
         @DisplayName("실패 - 카테고리명 필수")
-        void createCategory_FailWhenNameIsEmpty() {
-            
+        void createCategory_FailWithEmptyName() {
             CategoryRequest request = CategoryRequest.builder()
                     .name("")
                     .build();
@@ -120,8 +119,7 @@ class CategoryServiceTest {
 
         @Test
         @DisplayName("실패 - 카테고리명 중복")
-        void createCategory_FailWhenNameDuplicated() {
-            
+        void createCategory_FailWithNameDuplicated() {
             CategoryRequest request = createValidRequest();
             given(categoryRepository.existsByNameAndParent("테스트카테고리", null))
                     .willReturn(true);
@@ -133,8 +131,7 @@ class CategoryServiceTest {
 
         @Test
         @DisplayName("실패 - 부모 카테고리 존재하지 않음")
-        void createCategory_FailWhenParentNotFound() {
-            
+        void createCategory_FailParentNotFound() {
             CategoryRequest request = CategoryRequest.builder()
                     .name("테스트")
                     .parentId(999L)
@@ -153,7 +150,6 @@ class CategoryServiceTest {
         @Test
         @DisplayName("실패 - 최대 깊이 초과")
         void createCategory_FailWhenDepthExceeded() {
-            
             Category deepParent = createCategory(1L, "깊은부모", null, 4, "/1");
             CategoryRequest request = CategoryRequest.builder()
                     .name("깊은자식")
@@ -172,8 +168,7 @@ class CategoryServiceTest {
 
         @Test
         @DisplayName("실패 - displayOrder 중복")
-        void createCategory_FailWhenDisplayOrderDuplicated() {
-            
+        void createCategory_FailDisplayOrderDuplicated() {
             CategoryRequest request = CategoryRequest.builder()
                     .name("테스트")
                     .displayOrder(1)
@@ -197,7 +192,6 @@ class CategoryServiceTest {
         @Test
         @DisplayName("성공 - 카테고리 정보 수정")
         void updateCategory_Success() {
-            
             CategoryRequest request = CategoryRequest.builder()
                     .name("수정된이름")
                     .description("수정된설명")
@@ -222,7 +216,7 @@ class CategoryServiceTest {
 
         @Test
         @DisplayName("실패 - 카테고리 존재하지 않음")
-        void updateCategory_FailWhenCategoryNotFound() {
+        void updateCategory_FailCategoryNotFound() {
             given(categoryRepository.findActiveById(999L))
                     .willReturn(Optional.empty());
 
@@ -233,7 +227,7 @@ class CategoryServiceTest {
 
         @Test
         @DisplayName("실패 - 자기 자신을 부모로 설정")
-        void updateCategory_FailWhenSelfParent() {
+        void updateCategory_FailSelfParent() {
             CategoryRequest request = CategoryRequest.builder()
                     .parentId(1L)
                     .build();
@@ -269,8 +263,7 @@ class CategoryServiceTest {
 
         @Test
         @DisplayName("실패 - 하위 카테고리 존재")
-        void deleteCategory_FailWhenHasChildren() {
-            
+        void deleteCategory_FailHasChildren() {
             given(categoryRepository.findActiveById(1L))
                     .willReturn(Optional.of(parentCategory));
             given(categoryRepository.findChildrenByParentId(1L))
@@ -289,7 +282,6 @@ class CategoryServiceTest {
         @Test
         @DisplayName("성공 - 단일 카테고리 조회")
         void getCategoryById_Success() {
-            
             given(categoryRepository.findActiveById(1L))
                     .willReturn(Optional.of(parentCategory));
 
@@ -328,7 +320,6 @@ class CategoryServiceTest {
         @Test
         @DisplayName("성공 - 카테고리 트리 조회")
         void getCategoryTree_Success() {
-            
             given(categoryRepository.findAllActiveWithParent(Gender.A.name()))
                     .willReturn(Arrays.asList(parentCategory, childCategory));
 
@@ -356,15 +347,13 @@ class CategoryServiceTest {
 
         @Test
         @DisplayName("실패 - 검색 키워드 길이 부족")
-        void searchCategories_FailWhenKeywordTooShort() {
-            // When & Then - 예외 발생 기대
+        void searchCategories_FailKeywordTooShort() {
             assertThatThrownBy(() -> categoryService.searchCategories("a"))
                     .isInstanceOf(BusinessException.class)
                     .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT_VALUE);
         }
     }
 
-    // Helper methods
     private Category createCategory(Long id, String name, Category parent, int depth, String path) {
         Category category = Category.builder()
                 .name(name)

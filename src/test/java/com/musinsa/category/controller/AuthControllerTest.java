@@ -42,8 +42,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("유효한 관리자 계정으로 토큰 발급 성공")
-        void issueToken_WithValidCredentials_ShouldReturnToken() throws Exception {
-            // given
+        void issueToken_WithValidCredentials_ReturnToken() throws Exception {
             TokenRequest request = new TokenRequest();
             request.setAdminId("admin");
             request.setPassword("musinsa2025!");
@@ -54,7 +53,6 @@ class AuthControllerTest {
             given(jwtUtil.generateToken("admin")).willReturn(expectedToken);
             given(jwtUtil.getExpirationDate(expectedToken)).willReturn(expectedExpiresAt);
 
-            // when & then
             mockMvc.perform(post("/auth/token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -72,8 +70,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("모든 유효한 관리자 계정으로 토큰 발급 성공")
-        void issueToken_WithAllValidAccounts_ShouldSucceed() throws Exception {
-            // given
+        void issueToken_WithAllValidAccounts_Success() throws Exception {
             Map<String, String> validAccounts = Map.of(
                     "admin", "musinsa2025!",
                     "category", "category123!",
@@ -103,13 +100,11 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("잘못된 관리자 ID로 토큰 발급 실패")
-        void issueToken_WithInvalidAdminId_ShouldThrowException() throws Exception {
-            // given
+        void issueToken_WithInvalidAdminId_ThrowException() throws Exception {
             TokenRequest request = new TokenRequest();
             request.setAdminId("invalid");
             request.setPassword("password");
 
-            // when & then
             mockMvc.perform(post("/auth/token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -121,13 +116,11 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("잘못된 비밀번호로 토큰 발급 실패")
-        void issueToken_WithInvalidPassword_ShouldThrowException() throws Exception {
-            // given
+        void issueToken_WithInvalidPassword_ThrowException() throws Exception {
             TokenRequest request = new TokenRequest();
             request.setAdminId("admin");
             request.setPassword("wrongpassword");
 
-            // when & then
             mockMvc.perform(post("/auth/token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -139,11 +132,9 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("빈 요청으로 토큰 발급 실패")
-        void issueToken_WithEmptyRequest_ShouldReturnBadRequest() throws Exception {
-            // given
+        void issueToken_WithEmptyRequest_Return400() throws Exception {
             TokenRequest request = new TokenRequest();
 
-            // when & then
             mockMvc.perform(post("/auth/token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -153,13 +144,11 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("null 값으로 토큰 발급 실패")
-        void issueToken_WithNullValues_ShouldReturnBadRequest() throws Exception {
-            // given
+        void issueToken_WithNullValues_Return400() throws Exception {
             TokenRequest request = new TokenRequest();
             request.setAdminId(null);
             request.setPassword(null);
 
-            // when & then
             mockMvc.perform(post("/auth/token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -174,8 +163,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("유효한 토큰으로 검증 성공")
-        void verifyToken_WithValidToken_ShouldReturnTokenInfo() throws Exception {
-            // given
+        void verifyToken_WithValidToken_ReturnTokenInfo() throws Exception {
             String token = "valid.jwt.token";
             String authHeader = "Bearer " + token;
             String adminId = "admin";
@@ -186,7 +174,6 @@ class AuthControllerTest {
             given(jwtUtil.extractAdminId(token)).willReturn(adminId);
             given(jwtUtil.getExpirationDate(token)).willReturn(expiresAt);
 
-            // when & then
             mockMvc.perform(get("/auth/verify")
                             .header("Authorization", authHeader))
                     .andDo(print())
@@ -205,11 +192,9 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("Authorization 헤더 없이 토큰 검증 실패")
-        void verifyToken_WithoutAuthHeader_ShouldThrowException() throws Exception {
-            // given
+        void verifyToken_WithoutAuthHeader_ThrowException() throws Exception {
             given(jwtUtil.extractTokenFromHeader(null)).willReturn(null);
 
-            // when & then
             mockMvc.perform(get("/auth/verify"))
                     .andDo(print())
                     .andExpect(status().isUnauthorized());
@@ -220,12 +205,10 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("빈 Authorization 헤더로 토큰 검증 실패")
-        void verifyToken_WithEmptyAuthHeader_ShouldThrowException() throws Exception {
-            // given
+        void verifyToken_WithEmptyAuthHeader_ThrowException() throws Exception {
             String emptyHeader = "";
             given(jwtUtil.extractTokenFromHeader(emptyHeader)).willReturn(null);
 
-            // when & then
             mockMvc.perform(get("/auth/verify")
                             .header("Authorization", emptyHeader))
                     .andDo(print())
@@ -236,12 +219,10 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("잘못된 형식의 Authorization 헤더로 토큰 검증 실패")
-        void verifyToken_WithInvalidAuthHeader_ShouldThrowException() throws Exception {
-            // given
+        void verifyToken_WithInvalidAuthHeader_ThrowException() throws Exception {
             String invalidHeader = "Invalid token";
             given(jwtUtil.extractTokenFromHeader(invalidHeader)).willReturn(null);
 
-            // when & then
             mockMvc.perform(get("/auth/verify")
                             .header("Authorization", invalidHeader))
                     .andDo(print())
@@ -250,15 +231,13 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("유효하지 않은 토큰으로 검증 실패")
-        void verifyToken_WithInvalidToken_ShouldThrowException() throws Exception {
-            // given
+        void verifyToken_WithInvalidToken_ThrowException() throws Exception {
             String invalidToken = "invalid.jwt.token";
             String authHeader = "Bearer " + invalidToken;
 
             given(jwtUtil.extractTokenFromHeader(authHeader)).willReturn(invalidToken);
             given(jwtUtil.isTokenValid(invalidToken)).willReturn(false);
 
-            // when & then
             mockMvc.perform(get("/auth/verify")
                             .header("Authorization", authHeader))
                     .andDo(print())
@@ -271,15 +250,13 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("만료된 토큰으로 검증 실패")
-        void verifyToken_WithExpiredToken_ShouldThrowException() throws Exception {
-            // given
+        void verifyToken_WithExpiredToken_ThrowException() throws Exception {
             String expiredToken = "expired.jwt.token";
             String authHeader = "Bearer " + expiredToken;
 
             given(jwtUtil.extractTokenFromHeader(authHeader)).willReturn(expiredToken);
             given(jwtUtil.isTokenValid(expiredToken)).willReturn(false);
 
-            // when & then
             mockMvc.perform(get("/auth/verify")
                             .header("Authorization", authHeader))
                     .andDo(print())
@@ -295,8 +272,7 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("모든 유효한 관리자 계정 검증")
-        void validateAllAdminAccounts() throws Exception {
-            // given
+        void validateAllAdminAccounts_Success() throws Exception {
             Map<String, String> accounts = Map.of(
                     "admin", "musinsa2025!",
                     "category", "category123!",
@@ -309,7 +285,6 @@ class AuthControllerTest {
             given(jwtUtil.generateToken(anyString())).willReturn(token);
             given(jwtUtil.getExpirationDate(anyString())).willReturn(expiresAt);
 
-            // when & then
             for (Map.Entry<String, String> account : accounts.entrySet()) {
                 TokenRequest request = new TokenRequest();
                 request.setAdminId(account.getKey());
@@ -325,13 +300,11 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("존재하지 않는 관리자 계정으로 검증 실패")
-        void validateNonExistentAdmin_ShouldFail() throws Exception {
-            // given
+        void validateAdmin_WithNonExist_Return401() throws Exception {
             TokenRequest request = new TokenRequest();
-            request.setAdminId("nonexistent");
+            request.setAdminId("nonexist");
             request.setPassword("password");
 
-            // when & then
             mockMvc.perform(post("/auth/token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -340,13 +313,11 @@ class AuthControllerTest {
 
         @Test
         @DisplayName("대소문자 구분하여 관리자 계정 검증")
-        void validateAdminWithCaseSensitive_ShouldFail() throws Exception {
-            // given
+        void validateAdmin_WithUpperCase_Return401() throws Exception {
             TokenRequest request = new TokenRequest();
             request.setAdminId("ADMIN"); // 대문자
             request.setPassword("musinsa2025!");
 
-            // when & then
             mockMvc.perform(post("/auth/token")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
