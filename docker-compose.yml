@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  musinsa-category:
+    build: .
+    container_name: musinsa-category-api
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - JWT_SECRET=musinsa-category-admin-secret-key-for-development
+    restart: unless-stopped
