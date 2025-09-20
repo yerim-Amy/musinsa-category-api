@@ -9,4 +9,5 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=dev
       - JWT_SECRET=musinsa-category-admin-secret-key-for-development
+      - SPRING_H2_CONSOLE_SETTINGS_WEB_ALLOW_OTHERS=true
     restart: unless-stopped
