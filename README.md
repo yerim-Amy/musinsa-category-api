@@ -1,6 +1,7 @@
 # 무신사 카테고리 관리 API
 
-온라인 쇼핑몰의 상품 카테고리 관리 시스템입니다. JWT 인증 기반의 관리자 API를 제공합니다.
+온라인 쇼핑몰의 상품 카테고리 관리 시스템입니다. 패션 브랜드 무신사의 복잡한 상품 분류 체계를 모델링하여, 성별 구분과 트리 구조를 지원합니다.
+JWT 토큰 기반 인증을 통해 관리자만 카테고리를 생성/수정/삭제할 수 있고, 일반 사용자는 카테고리 조회만 가능합니다. RESTful API와 실시간 API 문서(Swagger)를 제공합니다.
 
 ## 실행 방법
 
@@ -27,7 +28,7 @@ docker-compose down
 
 #### 사전 요구사항
 - Java 11
-- Maven 3.3 이상 (또는 IDE 내장 Maven)
+- Maven 3.3 이상
 
 #### 실행 단계
 ```bash
@@ -164,6 +165,14 @@ Authorization: Bearer {token}
   "timestamp": "2025-09-20T14:30:00"
 }
 ```
+```json
+{
+  "success": false,
+  "error": "C001", 
+  "message": "카테고리를 찾을 수 없습니다",
+  "timestamp": "2025-09-20T14:30:00"
+}
+```
 
 ## Swagger 사용법
 
@@ -198,5 +207,11 @@ Authorization: Bearer {token}
 - displayOrder는 같은 부모 하위에서 중복 불가
 - 하위 카테고리가 있는 카테고리는 삭제 불가
 - 부모가 비활성화된 경우 하위 카테고리 활성화 불가
+- 키워드로 검색 시, 2글자 이상 입력해야 검색 가능
 - JWT 토큰 만료시간: 1시간
 - H2 데이터베이스는 애플리케이션 종료시 초기화
+
+### 로그 확인
+
+- **로그 파일**: `logs/musinsa-category-api.log`
+- **Docker 로그**: `docker-compose logs -f`
