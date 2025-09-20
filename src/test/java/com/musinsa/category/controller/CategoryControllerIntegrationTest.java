@@ -110,7 +110,6 @@ class CategoryControllerIntegrationTest {
         @Test
         @DisplayName("카테고리 생성 - 전체 플로우 성공")
         void createCategory_Success() throws Exception {
-            // given
             CategoryRequest request = CategoryRequest.builder()
                     .name("새로운 카테고리")
                     .description("새로운 카테고리 설명")
@@ -175,7 +174,7 @@ class CategoryControllerIntegrationTest {
         @Test
         @DisplayName("카테고리 생성 실패 - 이름 중복")
         void createCategory_DuplicateName_Returns404() throws Exception {
-            // given - 이미 존재하는 이름으로 요청
+            // 이미 존재하는 이름으로 요청
             CategoryRequest request = CategoryRequest.builder()
                     .name("상의")  // 이미 존재하는 이름
                     .description("중복 테스트")
@@ -214,7 +213,6 @@ class CategoryControllerIntegrationTest {
         @Test
         @DisplayName("카테고리 생성 실패 - 인증 토큰 없음")
         void createCategory_NoToken_Returns401() throws Exception {
-            // given
             CategoryRequest request = CategoryRequest.builder()
                     .name("테스트")
                     .build();
@@ -233,7 +231,6 @@ class CategoryControllerIntegrationTest {
         @Test
         @DisplayName("카테고리 수정 - 전체 플로우 성공")
         void updateCategory_Success() throws Exception {
-            // given
             CategoryRequest request = CategoryRequest.builder()
                     .name("수정된 상의")
                     .description("수정된 설명")
@@ -466,7 +463,7 @@ class CategoryControllerIntegrationTest {
         @Test
         @DisplayName("카테고리명 길이 검증 - 너무 긴 이름")
         void createCategory_TooLongName_Returns400() throws Exception {
-            // given - 100자가 넘는 이름
+            // 100자가 넘는 이름
             String longName = "a".repeat(101);
             CategoryRequest request = CategoryRequest.builder()
                     .name(longName)

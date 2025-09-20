@@ -81,7 +81,6 @@ class AuthControllerTest {
             given(jwtUtil.generateToken(anyString())).willReturn(expectedToken);
             given(jwtUtil.getExpirationDate(anyString())).willReturn(expectedExpiresAt);
 
-            // when & then
             for (Map.Entry<String, String> account : validAccounts.entrySet()) {
                 TokenRequest request = new TokenRequest();
                 request.setAdminId(account.getKey());
