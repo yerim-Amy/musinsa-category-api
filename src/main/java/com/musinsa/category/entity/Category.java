@@ -53,7 +53,7 @@ public class Category {
     @Builder.Default
     private Integer depth = 0;
 
-    @Column(length = 1000)
+    @Column(length = 100)
     private String path;
 
     @Column(name = "is_active", nullable = false)
