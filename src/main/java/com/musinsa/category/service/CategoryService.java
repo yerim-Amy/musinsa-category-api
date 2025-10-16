@@ -217,11 +217,10 @@ public class CategoryService {
 
         List<Category> categories;
 
+        // 1. 카테고리 조회
         if (categoryId == null) {
-            // 전체 카테고리 트리 조회
             categories = categoryRepository.findAllActiveWithParent(gender.name());
         } else {
-            // 특정 카테고리와 하위 카테고리들 조회
             Category rootCategory = getActiveCategoryById(categoryId);
             categories = categoryRepository.findDescendants(rootCategory.getPath(),gender.name());
             categories.add(0, rootCategory); // 본인도 포함
@@ -231,23 +230,25 @@ public class CategoryService {
             return Collections.emptyList();
         }
 
-        // ID를 키로 하는 카테고리 맵 생성
+        // 2. ID를 키로 하는 CategoryResponse Map 생성
         Map<Long, CategoryResponse> categoryMap = new HashMap<>();
-        List<CategoryResponse> rootCategories = new ArrayList<>();
-
-        // 먼저 모든 카테고리를 CategoryResponse로 변환
         for (Category category : categories) {
             CategoryResponse response = CategoryResponse.from(category);
             categoryMap.put(category.getId(), response);
         }
 
-        // 부모-자식 트리 설정
+        // 3. 트리 구조 생성
+        List<CategoryResponse> rootCategories = new ArrayList<>();
         for (Category category : categories) {
             CategoryResponse response = categoryMap.get(category.getId());
 
-            if (category.getParent() == null) {
+            // 루트 여부 판단: 특정 ID 조회 시 or 전체 조회
+            boolean isRoot = (category.getId().equals(categoryId))
+                    || (categoryId == null && category.getParent() == null);
+            if (isRoot) {
                 rootCategories.add(response);
-            } else {
+            } else if (category.getParent() != null) {
+                // 부모-자식 연결
                 CategoryResponse parent = categoryMap.get(category.getParent().getId());
                 if (parent != null) {
                     parent.addChild(response);
